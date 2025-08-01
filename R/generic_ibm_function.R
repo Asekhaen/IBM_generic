@@ -3,18 +3,10 @@ library(dplyr)
 library(ggplot2)
 
 
-
-# Beverton-Holt function
-# soft density-dependence
-# bev_holt <- function(N_pop, growth_rate, carry_capacity) {
-#   return((growth_rate * N_pop) / (1 + (growth_rate - 1) * N_pop / carry_capacity))
-# }
-
-# hard density-dependence
-bev_holt <- function(N_pop, growth_rate, carry_capacity) {
-  return((growth_rate * N_pop) / (1 + N_pop / carry_capacity))
+# Density-dependent reproduction function
+bev_holt <- function(n_pop, fecundity, density_dependence_factor) {
+  return(fecundity / (1 + density_dependence_factor * n_pop))
 }
-
 
 
 
@@ -23,13 +15,15 @@ colnames(coords) <- c("x","y")
 
 
 
-ini_pop <- function(patches, n_per_patch, coord, n_loci, init_frequency) {
+ini_pop <- function(patches, n_per_patch, n_loci, init_frequency) {
   patches_pop <- list()
   
   for (i in 1:patches) {
     patches_pop[[i]] <- tibble(
-      allele1 = matrix(rbinom(n = n_per_patch[i] * n_loci, size = 1, prob = init_frequency), ncol = n_loci), # 0 = wild-type, 1 = drive allele
-      allele2 = matrix(rbinom(n = n_per_patch[i] * n_loci, size = 1, prob = init_frequency), ncol = n_loci),
+      allele1 = matrix(rbinom(n = n_per_patch[i] * n_loci, 
+                              size = 1, prob = init_frequency), ncol = n_loci), # 0 = wild-type, 1 = drive allele
+      allele2 = matrix(rbinom(n = n_per_patch[i] * n_loci, 
+                              size = 1, prob = init_frequency), ncol = n_loci),
       mate_allele1 = matrix(NA, nrow = n_per_patch[i], ncol = n_loci),
       mate_allele2 = matrix(NA, nrow = n_per_patch[i], ncol = n_loci),
       alive = TRUE
@@ -41,38 +35,20 @@ ini_pop <- function(patches, n_per_patch, coord, n_loci, init_frequency) {
 }  
 
 
-# pop <- ini_pop(patches,
-#                n_per_patch,
-#                n_loci = n_loci,
-#                init_frequency = init_frequency)
-
-
-# Loci selection matrix: function to place loci at random on the genome (of size = 1)
-# also takes exponential decay and variance to produce variance-covariance matrix
-
-place_loci_mat <- function(loci, genome.size = 1, var = 1, decay){
-  loci_positions <- (runif(loci, max = genome.size))
-  loci_dist_matrix <- as.matrix(dist(loci_positions))^2 
-  loci_cov_matrix <- var*exp(-decay*loci_dist_matrix)
-  return(loci_cov_matrix)
-}
-
-l.cov.mat <- place_loci_mat(n_loci, genome.size = 1, var = 1, decay)
-
-
-
 
 growth <- function(pop_patches, 
                    n_loci,
-                   carry_capacity,
-                   growth_rate,
+                   density_dependence_factor,
+                   fecundity,
                    lethal_effect,
                    complete_sterile,
+                   prob_survival,
                    sim_days,
-                   loci_cov_matrix
+                   overlapping,
+                   cov_matrix
                    ) {
-  # if (sim_days == 15) browser()
-  # browser()
+   # if (sim_days == 10) browser()
+   # browser()
   updated_pop_patches <- list()
   
   for (i in seq_along(pop_patches)) {
@@ -83,8 +59,7 @@ growth <- function(pop_patches,
     # growth 
     if (n.pop > 0){
       
-      grown_pop <- bev_holt(n.pop, growth_rate = growth_rate, carry_capacity)
-      avg_fecundity <- grown_pop/n.pop
+      avg_fecundity <- bev_holt(n.pop, fecundity, density_dependence_factor)
       act_fecundity <- rpois(n.pop, avg_fecundity)
       
       selected_mate_idx <- sample(n.pop, n.pop, replace = TRUE)
@@ -125,8 +100,8 @@ growth <- function(pop_patches,
       stopifnot(num_loci == n_loci)
       
       # # random selection of allele, with linkage 
-      which_allele_fn <- function(n_offspring, num_loci, loci_cov_matrix){
-        epsilon <- MASS::mvrnorm(n_offspring, rep(0, num_loci), Sigma = loci_cov_matrix)
+      which_allele_fn <- function(n_offspring, num_loci, cov_matrix){
+        epsilon <- MASS::mvrnorm(n_offspring, rep(0, num_loci), Sigma = cov_matrix)
         selection_prob <- plogis(epsilon)
         matrix(rbinom(n_offspring * num_loci, 1, selection_prob) == 1,
                nrow = n_offspring,
@@ -134,8 +109,8 @@ growth <- function(pop_patches,
       }
       
       
-      which_allele_ind <- which_allele_fn(total_offspring, num_loci, loci_cov_matrix) # female gametes
-      which_allele_mate <- which_allele_fn(total_offspring, num_loci, loci_cov_matrix) # male gametes
+      which_allele_ind <- which_allele_fn(total_offspring, num_loci, cov_matrix) # female gametes
+      which_allele_mate <- which_allele_fn(total_offspring, num_loci, cov_matrix) # male gametes
       
       #  Determination of offspring features
       offspring <- tibble(
@@ -149,9 +124,16 @@ growth <- function(pop_patches,
         mate_allele2 = matrix(NA, ncol = n_loci),
         alive = TRUE
       )
-      
+    
       # Update pop with offspring & fem population
-      pop <- offspring
+
+      if (overlapping) {
+        pop <- bind_rows(pop, offspring)
+        pop <- pop[rbinom(nrow(pop), 1, prob_survival) == 1, ]    # survival 
+      } else{
+        pop <- offspring
+        pop <- pop[rbinom(nrow(pop), 1, prob_survival) == 1, ]    # survival 
+      }
     }
     
     
@@ -170,23 +152,13 @@ growth <- function(pop_patches,
 }
 
 
-# 
-# grown_pop <- growth(pop_patches = pop,
-#                     fecundity,
-#                     n_loci,
-#                     daily_survival = prob_survival,
-#                     beta,
-#                     lethal_effect = FALSE,
-#                     complete_sterile = TRUE,
-#                     loci_cov_matrix = l.cov.mat,
-#                     carry_capacity = carry_capacity)
+
+# Default dispersal is negative exponential dispersal (spatial metapopulation model). 
+# Can be switched to nearest neighbour one dimensional space (stepping stone model)
 
 
-
-# Dispersal: the default is the metapopulation network. Otherwise this can be switched to a stepping stone model
-
-
-#### Metapopulation dispersal function ####
+#### negative exponential dispersal ####
+#### 
 # first make dispersal matrix
 
 make_dispersal_matrix <- function(coords, lambda, dispersal_frac) {
@@ -271,11 +243,11 @@ ss_dispersal <- function(pop_patches, dispersal_frac) {
   n_patches <- length(pop_patches)
   dispersed_pop <- vector("list", n_patches)
   
-  # # Initialize empty population for each patch
-  # for (i in seq_len(n_patches)) {
-  #   dispersed_pop[[i]] <- pop_patches[[i]][0, ]
-  # }
-  # 
+  # Initialize empty population for each patch
+  for (i in seq_len(n_patches)) {
+    dispersed_pop[[i]] <- pop_patches[[i]][0, ]
+  }
+
   for (i in seq_len(n_patches)) {
     current_patch <- pop_patches[[i]]
     
@@ -318,26 +290,25 @@ simulation <- function(patches,
                        n_per_patch,
                        n_loci,
                        init_frequency,
-                       carry_capacity,
-                       growth_rate,
-                       lethal_effect = FALSE,
-                       complete_sterile = TRUE,
-                       sim_days = sim_days,
-                       stepping_stone_model = FALSE,
-                       loci_cov_matrix = l.cov.mat,
-                       decay = decay,
-                       dispersal_matrix = dispersal_matrix
+                       density_dependence_factor,
+                       fecundity,
+                       lethal_effect,
+                       complete_sterile,
+                       sim_days,
+                       prob_survival,
+                       stepping_stone_model,
+                       overlapping,
+                       cov_matrix,
+                       decay,
+                       dispersal_matrix
                        ){
   
   pop <- ini_pop(patches,
                  n_per_patch,
-                 n_loci = n_loci,
-                 init_frequency = init_frequency)
+                 n_loci,
+                 init_frequency)
   
-  l.cov.mat <- place_loci_mat(n_loci, 
-                              genome.size = 1, 
-                              var = 1, decay)
-  
+
   patch_sizes <- list()
   allele_frequency <- list()
   # spread_rate <- list()
@@ -351,12 +322,14 @@ simulation <- function(patches,
     # Growth with reproduction
     pop <- growth(pop_patches = pop, 
                   n_loci,
-                  carry_capacity,
-                  growth_rate,
-                  lethal_effect = FALSE,
-                  complete_sterile = TRUE,
+                  density_dependence_factor,
+                  fecundity,
+                  lethal_effect,
+                  complete_sterile,
+                  prob_survival,
                   sim_days,
-                  loci_cov_matrix = l.cov.mat)
+                  overlapping,
+                  cov_matrix)
     
     # Dispersal
     if(stepping_stone_model) {

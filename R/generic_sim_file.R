@@ -31,18 +31,21 @@ text(coords, labels = 1:patches)
 ###########################################
 
 sim <- simulation (patches = patches,
+                   pop_patches,
                    n_per_patch = n_per_patch,
                    n_loci = n_loci,
                    init_frequency = init_frequency,
-                   growth_rate = growth_rate,
-                   carry_capacity = carry_capacity,
+                   fecundity = fecundity,
+                   density_dependence_factor = density_dependence_factor,
+                   prob_survival = prob_survival,
                    decay = decay,
                    lethal_effect = FALSE,
                    complete_sterile = FALSE,
                    sim_days = sim_days,
-                   stepping_stone_model = FALSE,
+                   stepping_stone_model = TRUE,
+                   overlapping = TRUE,
                    dispersal_matrix = dispersal_matrix,
-                   loci_cov_matrix)
+                   cov_matrix = l.cov.mat)
  
 
 
