@@ -3,14 +3,6 @@ library(purrr)
 library(truncnorm)
 
 
-# TO DO!
-# introduce a functional exponential dispersal model. DONE!
-# implement density-dependence survival at the larval stage. DONE!
-# introduce patch carrying capacity (larvae). DONE!
-# introduce effect of temperature on survival (larva and adult) DONE!
-# introduce effect of temperature and humidity on transition/growth
-# introduce gene drive. ONGOING
-
 ###########################################
 #               PARAMETERS                #
 ###########################################
@@ -18,19 +10,20 @@ library(truncnorm)
 set.seed(20250730)
 
 # Source functions and parameters 
-source("R/parameters_generic.R")
+source("R/sub_functions.R")
 source("R/generic_ibm_function.R")
+source("R/parameters_generic.R")
 
 
-plot(coords, cex = 4)
-text(coords, labels = 1:patches)
+# plot(coords, cex = 4)
+# text(coords, labels = 1:patches)
 
 
 ###########################################
 #            RUN   SIMULATION             #
 ###########################################
 
-sim <- simulation (patches = patches,
+output <- run_model (patches = patches,
                    pop_patches,
                    n_per_patch = n_per_patch,
                    n_loci = n_loci,
@@ -40,7 +33,7 @@ sim <- simulation (patches = patches,
                    prob_survival = prob_survival,
                    decay = decay,
                    lethal_effect = FALSE,
-                   complete_sterile = FALSE,
+                   complete_sterile = TRUE,
                    sim_days = sim_days,
                    stepping_stone_model = TRUE,
                    overlapping = TRUE,

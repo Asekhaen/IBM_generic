@@ -1,20 +1,6 @@
-library(tidyverse)
-library(dplyr)
-library(ggplot2)
 
 
-# Density-dependent reproduction function
-bev_holt <- function(n_pop, fecundity, density_dependence_factor) {
-  return(fecundity / (1 + density_dependence_factor * n_pop))
-}
-
-
-
-coords <- as.data.frame(100 * matrix(runif(patches * 2), ncol = 2))
-colnames(coords) <- c("x","y")
-
-
-
+# population setup: Initialisation ####
 ini_pop <- function(patches, n_per_patch, n_loci, init_frequency) {
   patches_pop <- list()
   
@@ -35,6 +21,11 @@ ini_pop <- function(patches, n_per_patch, n_loci, init_frequency) {
 }  
 
 
+# growth function ####
+# captures density-dependent reproduction using Beverton-Holt model, genetic 
+# (with linkage) inheritance, and whether the population is overlapping or 
+# non-overlapping
+# 
 
 growth <- function(pop_patches, 
                    n_loci,
@@ -45,10 +36,8 @@ growth <- function(pop_patches,
                    prob_survival,
                    sim_days,
                    overlapping,
-                   cov_matrix
-                   ) {
-   # if (sim_days == 10) browser()
-   # browser()
+                   cov_matrix) {
+  #browser()
   updated_pop_patches <- list()
   
   for (i in seq_along(pop_patches)) {
@@ -96,21 +85,9 @@ growth <- function(pop_patches,
       
       
       # Genetic inheritance
-      num_loci <- ncol(ind_germline$allele1)
-      stopifnot(num_loci == n_loci)
-      
-      # # random selection of allele, with linkage 
-      which_allele_fn <- function(n_offspring, num_loci, cov_matrix){
-        epsilon <- MASS::mvrnorm(n_offspring, rep(0, num_loci), Sigma = cov_matrix)
-        selection_prob <- plogis(epsilon)
-        matrix(rbinom(n_offspring * num_loci, 1, selection_prob) == 1,
-               nrow = n_offspring,
-               ncol = num_loci)
-      }
-      
-      
-      which_allele_ind <- which_allele_fn(total_offspring, num_loci, cov_matrix) # female gametes
-      which_allele_mate <- which_allele_fn(total_offspring, num_loci, cov_matrix) # male gametes
+
+      which_allele_ind <- which_allele_fn(total_offspring, n_loci, cov_matrix) # female gametes
+      which_allele_mate <- which_allele_fn(total_offspring, n_loci, cov_matrix) # male gametes
       
       #  Determination of offspring features
       offspring <- tibble(
@@ -135,64 +112,24 @@ growth <- function(pop_patches,
         pop <- pop[rbinom(nrow(pop), 1, prob_survival) == 1, ]    # survival 
       }
     }
-    
-    
-    # Genetic load: lethal effect
+  
+    # if turned on, this "if" statement simulates lethal effect of for individuals with 
+    # homologous deleterious allele
     
     if (lethal_effect){
       homozygous_lethal <- (pop$allele1 == 1) & (pop$allele2 == 1)
       any_homozygous <- rowSums(homozygous_lethal) > 0
       pop <- filter(pop, !any_homozygous)
     }
-    
-    
     updated_pop_patches[[i]] <- pop
   }
   return(updated_pop_patches)
 }
 
+# dispersal: uses a negative exponential kernel (for spatial metapopulation) or  
+# nearest neighbour (for one dimensional space stepping stone model)
 
-
-# Default dispersal is negative exponential dispersal (spatial metapopulation model). 
-# Can be switched to nearest neighbour one dimensional space (stepping stone model)
-
-
-#### negative exponential dispersal ####
-#### 
-# first make dispersal matrix
-
-make_dispersal_matrix <- function(coords, lambda, dispersal_frac) {
-  # dispersal matrix 
-  dist_matrix <- as.matrix(dist(coords, method = "euclidean"))
-  
-  #exponential dispersal kernel
-  dispersal_kernel <- exp(-lambda * dist_matrix)
-  
-  # set the diagonal elements to 0 to prevent self-dispersal
-  diag(dispersal_kernel) <- 0
-  
-  
-  # make these rows sum to 1 to get probability of moving to other patch
-  # *if* they left. This dispersal matrix gives the probability of the vector
-  # vector moving between patches
-  rel_dispersal_matrix <- sweep(dispersal_kernel, 1,
-                                rowSums(dispersal_kernel), FUN = "/")
-  
-  # normalise these to have the overall probability of dispersing to that patch,
-  # and add back the probability of remaining
-  dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
-    (1 - dispersal_frac) * diag(nrow(dispersal_kernel))
-  
-  return(dispersal_matrix)
-}
-
-
-# create a dispersal matrix
-dispersal_matrix <- make_dispersal_matrix(coords = coords, 
-                                          lambda = lambda, 
-                                          dispersal_frac = dispersal_frac)
-
-# make meta_population dispersal function
+# negative exponential kernel ####
 
 meta_dispersal <- function(pop, dispersal_matrix, check = FALSE) {
   
@@ -235,9 +172,7 @@ meta_dispersal <- function(pop, dispersal_matrix, check = FALSE) {
   return(dispersed_pop)
 }
 
-
-#### Stepping stone dispersal (one-dimensional discrete space) ####
-
+# nearest neighbour (one-dimensional stepping stone dispersal) ####
 
 ss_dispersal <- function(pop_patches, dispersal_frac) {
   n_patches <- length(pop_patches)
@@ -271,21 +206,18 @@ ss_dispersal <- function(pop_patches, dispersal_frac) {
         )
       }
     }
-    
     # Add stayers (non-dispersing adults and non-adults) to current patch
     dispersed_pop[[i]] <- bind_rows(
       dispersed_pop[[i]], 
       non_dispersers
       )
   }
-  
   return(dispersed_pop)
 }
 
 
-
 #### Simulation function 
-simulation <- function(patches,
+run_model <- function(patches,
                        pop_patches,
                        n_per_patch,
                        n_loci,
@@ -338,17 +270,7 @@ simulation <- function(patches,
       pop <- meta_dispersal(pop, dispersal_matrix, check = FALSE)
     }
     
-    # 
-    # # Track the average generation time: from egg to first oviposition
-    # 
-    # all_females[[day]] <- do.call(rbind, lapply(pop, function(pop) {
-    #   filter(pop, sex == 1, !is.na(first_ovip_day), !is.na(birth))
-    # }))
-    # 
-    # all_females$time_to_first_ovip <- all_females$first_ovip_day - all_females$birth
-    # gen_time <- mean(all_females$time_to_first_ovip)
-    
-    
+
     # Track daily population sizes per patch
     
     patch_sizes[[day]] <- do.call(rbind, lapply(seq_along(pop), function(patch_id) {
