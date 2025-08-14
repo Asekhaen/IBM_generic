@@ -1,0 +1,88 @@
+---
+title: "Mathematical description of the IBM"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+date: "2025-05-09"
+header-includes: \usepackage{wasysym}
+---
+
+We developed a discrete-time, discrete-space stochastic individual-based model (IBM) to simulate the population dynamics, genetic structure (including inheritance), and dispersal of a generic species. The model accommodates both overlapping and non-overlapping generations. We use the model to investigate whether genetic load as a result of the accumulation of deleterious alleles in the population can generate generate Allee effect to slow down the invasion process. We then explore the impact of different spatial topologies (one-dimensional space using a stepping-stone model vs a two-dimensional metapopulation model. The stepping-stone model represents a connection of linear patches where dispersal of individuals between patches is limited to nearest neighbours(adjacent patches). In contrast, the metapopulation model is a network of patches connected by dispersal. Both models incorporate key biological processes: mating/reproduction, survival, and dispersal. We assume all patches are homogeneous in terms of suitability. Simulations are undertaken on a yearly time step indexed by $t$. Within each patch indexed by $j$ are  individuals indexed by $i$. For non-overlapping generations, individuals reproduce and die after each timestep, in contrast to overlapping generations.
+
+
+# Reproduction
+
+We modelled a hermaphroditic panmictic population where all individuals are capable of reproducing by breeding with a randomly selected mate in the population. Each individual has an average reproductive output, $f$ (fecundity). We modelled reproduction in a density-dependent manner using the Beverton–Holt model (Beverton & Holt 2012), which yields an expected reproductive output, $E(f)$. The actual reproductive output $A(f)$ for the population is then drawn from a Poisson distribution.
+
+$$
+A(f)\sim \text{Poisson}(N,E(f))
+$$
+
+where:
+$$
+E(f) = \frac{f}{1 + (\frac{f - 1}{K}) \times N}
+$$
+
+where $K$ is the carrying capacity and $N$ is the population size.
+
+
+
+# Survival
+
+We assume that survival rate is the same for every individual in the population and that they survive with a probability $s$. Thus, whether an individual survives or not $S_{i,j,t}$ at each time step $t$ is modelled as a stochastic process and drawn from a Bernoulli distribution. However, in the non-overlapping generation, following reproduction, all parents die with a 100% probability.   
+
+
+$$
+S_{i,j,t} \sim\text{Bernoulli} (s).
+$$
+
+# Dispersal
+
+Dispersal is a fundamental driver of invasion dynamics. As individuals seek resources, mates, or evade predators, they expand their range, consequently facilitating the spread and establishment in new areas. We model dispersal using two approaches: a negative exponential dispersal kernel for the meta-population model and an adjacency matrix (nearest-neighbour) for the stepping-stone model. During dispersal, dispersing individuals move from an origin $j$ to a destination $k$ patch, with a probability. In the metapopulation model, this probability decreases exponentially as the distance between patches increases. In contrast, the stepping-stone model assumes that individuals disperse to adjacent patches with equal probability. The dispersal kernel $K$ is given below as:
+
+$$
+K_{j,k} = 
+\begin{cases}
+dx, & j \ne k \\
+0, & j = k
+\end{cases}
+$$ 
+Where $dx$ can either denote a negative exponential dispersal matrix $e^{-\lambda W_{j,k}}$, or an adjacency matrix  $U_{j,k}$. Each row of the resultant dispersal matrix is then normalised to produce conditional probabilities $O_{j,k}$:
+
+
+
+$$
+O_{j,k} = \frac{dx} {\sum_{k} dx}
+$$ 
+and given each individual has a daily probability $r$ of dispersing, the true probability $X_{j,k}$ of moving from $j$ to $k$ is calculated as:
+
+$$
+X_{j,k} =
+\begin{cases}
+rO_{j,k}, & j \ne k \\
+1-r, & j = k 
+\end{cases}
+$$
+
+# Genetic inheritance 
+
+We assume that loci are arranged linearly along the genome of an individual. The gametes for each offspring are formed by selecting one allele per locus from each parent. Rather than assuming independent segregation, we modelled genetic linkage by generating correlated allele choices. To do this, we obtained the distance matrix $Q_{x,y}$ between pairs of loci based on their Euclidean distances and calculated the variance-covariance matrix $\Sigma$ using a covariance decay function. 
+
+$$
+\Sigma = \sigma^2 \exp(−λQ_{x,y})
+$$
+
+where $\sigma^2$ is a scaling factor and $\lambda$ is a decay parameter that controls the covariance between two loci as the genetic distance between them increases. Using $\Sigma$, we then generated multivariate normal random effect values $\epsilon$ that were transformed to probabilities via a logistic function. The resulting probabilities were then used to conduct Bernoulli trials to determine which allele (from each parent) is inherited by the offspring for each locus. Thus, if $L$ is the number of loci, and $\Sigma$ the variance-covariance matrix describing correlations among loci, the multivariate random effect $\epsilon$ is given as:  
+
+
+
+$$
+\epsilon_i \sim \mathcal{N}_L\left(\mu, \Sigma \right)
+$$
+
+where $\epsilon_i = (\epsilon_{i1}, \dots, \epsilon_{iL})$ and $\mathcal{N}_L$ denotes the multivariate normal distribution, and $\mu$ is a vector with $L$ dimensional mean of 0. Consequently, the probability $\rho_{i}$ of inheriting an allele in any locus from a given parent using the logistic function becomes, where $\rho_{i}  = (\rho_{il} , \dots,\rho_{iL})$.
+
+$$
+\rho_{i} = \frac{1}{1 + (\exp (-\epsilon_{i}))}
+$$

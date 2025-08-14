@@ -29,15 +29,15 @@ ini_pop <- function(patches, n_per_patch, n_loci, init_frequency) {
 
 growth <- function(pop_patches, 
                    n_loci,
-                   density_dependence_factor,
+                   carrying_capacity,
                    fecundity,
                    lethal_effect,
                    complete_sterile,
                    prob_survival,
-                   sim_days,
                    overlapping,
-                   cov_matrix) {
-  #browser()
+                   cov_matrix,
+                   sim_days) {
+  # if(sim_days == 5) browser()
   updated_pop_patches <- list()
   
   for (i in seq_along(pop_patches)) {
@@ -48,8 +48,8 @@ growth <- function(pop_patches,
     # growth 
     if (n.pop > 0){
       
-      avg_fecundity <- bev_holt(n.pop, fecundity, density_dependence_factor)
-      act_fecundity <- rpois(n.pop, avg_fecundity)
+      exp_fecundity <- bev_holt(n.pop, fecundity, carrying_capacity)
+      act_fecundity <- rpois(n.pop, exp_fecundity)
       
       selected_mate_idx <- sample(n.pop, n.pop, replace = TRUE)
       selected_mate <- pop[selected_mate_idx,]
@@ -80,12 +80,12 @@ growth <- function(pop_patches,
     if (total_offspring > 0){  
       # Replicate the parents features `n_offspring` times for each offspring, collect only genetic information
       
-      ind_germline <- pop[rep(1:n.pop, n_offspring), ] |> select(contains("allele"))
-      mate_germline <- pop[rep(1:n.pop, n_offspring), ] |> select(contains("mate_allele"))
+      ind_germline <- pop[rep(1:n.pop, n_offspring), c("allele1", "allele2")]
+      mate_germline <- pop[rep(1:n.pop, n_offspring), c("mate_allele1", "mate_allele2")]
       
-      
-      # Genetic inheritance
 
+      # Genetic inheritance
+      
       which_allele_ind <- which_allele_fn(total_offspring, n_loci, cov_matrix) # female gametes
       which_allele_mate <- which_allele_fn(total_offspring, n_loci, cov_matrix) # male gametes
       
@@ -101,9 +101,9 @@ growth <- function(pop_patches,
         mate_allele2 = matrix(NA, ncol = n_loci),
         alive = TRUE
       )
-    
+      
       # Update pop with offspring & fem population
-
+      
       if (overlapping) {
         pop <- bind_rows(pop, offspring)
         pop <- pop[rbinom(nrow(pop), 1, prob_survival) == 1, ]    # survival 
@@ -112,28 +112,28 @@ growth <- function(pop_patches,
         pop <- pop[rbinom(nrow(pop), 1, prob_survival) == 1, ]    # survival 
       }
     }
-  
+    
     # if turned on, this "if" statement simulates lethal effect of for individuals with 
     # homologous deleterious allele
     
     if (lethal_effect){
       homozygous_lethal <- (pop$allele1 == 1) & (pop$allele2 == 1)
       any_homozygous <- rowSums(homozygous_lethal) > 0
-      pop <- filter(pop, !any_homozygous)
+      #pop <- filter(pop, !any_homozygous)
+      pop <- pop[pop[!any_homozygous],]
     }
     updated_pop_patches[[i]] <- pop
   }
   return(updated_pop_patches)
 }
 
-# dispersal: uses a negative exponential kernel (for spatial metapopulation) or  
-# nearest neighbour (for one dimensional space stepping stone model)
+# dispersal: uses a negative exponential dispersal kernel (for spatial metapopulation) or  
+# adjacency nearest neighbour (for one dimensional space stepping stone model)
 
 # negative exponential kernel ####
 
-meta_dispersal <- function(pop, dispersal_matrix, check = FALSE) {
-  
-  patch_indices <- dispersed_pop <- vector(mode = "list", length = nrow(dispersal_matrix))
+dispersal <- function(pop, dispersal_type, check = FALSE) {
+  patch_indices <- dispersed_pop <- vector(mode = "list", length = nrow(dispersal_type))
   
   # get new patch indices for all individuals
   for (i in seq_along(pop)) {
@@ -142,11 +142,9 @@ meta_dispersal <- function(pop, dispersal_matrix, check = FALSE) {
     
     if (n_patch == 0) next  # skip patch if no individuals
     
-    dispersal_probs <- dispersal_matrix[i, ]
-    
+    dispersal_probs <- dispersal_type[i, ]
     # Sample new patch indices for all individuals in this patch
     new_pop_indices <- sample(1:length(dispersal_probs), size = n_patch, replace = TRUE, prob = dispersal_probs)
-    
     # Store original row indices and their assigned new patch
     patch_indices[[i]] <- tibble(ind_within_pop_indices = seq_len(n_patch),
                                  new_pop_indices = new_pop_indices)
@@ -168,72 +166,26 @@ meta_dispersal <- function(pop, dispersal_matrix, check = FALSE) {
     n_disp <- sum(sapply(dispersed_pop, nrow))
     cat(n_pop, " ", n_disp, "\n")
   }
-  
   return(dispersed_pop)
 }
-
-# nearest neighbour (one-dimensional stepping stone dispersal) ####
-
-ss_dispersal <- function(pop_patches, dispersal_frac) {
-  n_patches <- length(pop_patches)
-  dispersed_pop <- vector("list", n_patches)
-  
-  # Initialize empty population for each patch
-  for (i in seq_len(n_patches)) {
-    dispersed_pop[[i]] <- pop_patches[[i]][0, ]
-  }
-
-  for (i in seq_len(n_patches)) {
-    current_patch <- pop_patches[[i]]
-    
-    if (nrow(current_patch) == 0) next   # skip unoccupied patch
-    
-    # Determine which adults disperse
-    ready_to_disperse <- rbinom(nrow(current_patch), 1, dispersal_frac)
-    dispersers <- current_patch[ready_to_disperse == 1, ]
-    non_dispersers <- current_patch[ready_to_disperse == 0, ]
-    
-    # Disperse adults to i-1 or i+1
-    if (nrow(dispersers) > 0) {
-      directions <- sample(c(-1, 1), nrow(dispersers), replace = TRUE)
-      target_patch <- i + directions
-      target_patch <- pmin(pmax(target_patch, 1), n_patches)  # keep within boundaries i.e. patch 1 and patch "n"
-      
-      for (j in seq_along(target_patch)) {
-        dispersed_pop[[target_patch[j]]] <- bind_rows(
-          dispersed_pop[[target_patch[j]]],
-          dispersers[j, ]
-        )
-      }
-    }
-    # Add stayers (non-dispersing adults and non-adults) to current patch
-    dispersed_pop[[i]] <- bind_rows(
-      dispersed_pop[[i]], 
-      non_dispersers
-      )
-  }
-  return(dispersed_pop)
-}
-
 
 #### Simulation function 
 run_model <- function(patches,
-                       pop_patches,
-                       n_per_patch,
-                       n_loci,
-                       init_frequency,
-                       density_dependence_factor,
-                       fecundity,
-                       lethal_effect,
-                       complete_sterile,
-                       sim_days,
-                       prob_survival,
-                       stepping_stone_model,
-                       overlapping,
-                       cov_matrix,
-                       decay,
-                       dispersal_matrix
-                       ){
+                      pop_patches,
+                      n_per_patch,
+                      n_loci,
+                      init_frequency,
+                      fecundity,
+                      carrying_capacity,
+                      lethal_effect,
+                      complete_sterile,
+                      sim_days,
+                      prob_survival,
+                      overlapping,
+                      cov_matrix,
+                      decay,
+                      dispersal_type
+                      ){
   
   pop <- ini_pop(patches,
                  n_per_patch,
@@ -246,30 +198,25 @@ run_model <- function(patches,
   # spread_rate <- list()
   # gen_time <- list()
   
-  
   for (day in 1:sim_days) {
-    #if (day == 45) browser()
+    #if (day == 5) browser()
     cat("Day", day, "Underway \n")
     
     # Growth with reproduction
     pop <- growth(pop_patches = pop, 
                   n_loci,
-                  density_dependence_factor,
+                  carrying_capacity,
                   fecundity,
                   lethal_effect,
                   complete_sterile,
                   prob_survival,
-                  sim_days,
                   overlapping,
-                  cov_matrix)
+                  cov_matrix,
+                  sim_days = day)
     
     # Dispersal
-    if(stepping_stone_model) {
-      pop <- ss_dispersal(pop, dispersal_frac)
-    } else {
-      pop <- meta_dispersal(pop, dispersal_matrix, check = FALSE)
-    }
-    
+  
+      pop <- meta_dispersal(pop, dispersal_type, check = FALSE)
 
     # Track daily population sizes per patch
     

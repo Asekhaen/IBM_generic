@@ -29,15 +29,14 @@ output <- run_model (patches = patches,
                    n_loci = n_loci,
                    init_frequency = init_frequency,
                    fecundity = fecundity,
-                   density_dependence_factor = density_dependence_factor,
+                   carrying_capacity = carrying_capacity,
                    prob_survival = prob_survival,
                    decay = decay,
                    lethal_effect = FALSE,
                    complete_sterile = TRUE,
                    sim_days = sim_days,
-                   stepping_stone_model = TRUE,
-                   overlapping = TRUE,
-                   dispersal_matrix = dispersal_matrix,
+                   overlapping = FALSE,
+                   dispersal_type = adjacency_matrix,
                    cov_matrix = l.cov.mat)
  
 
