@@ -24,7 +24,7 @@ $$
 E(f) = \frac{f}{1 + (\frac{f - 1}{K}) \times N}
 $$
 
-where $K$ is the carrying capacity and $N$ is the population size.
+where $K$ is the carrying capacity (in the absence of other fitness effects) and $N$ is the population size.
 
 
 
@@ -44,16 +44,16 @@ Dispersal is a fundamental driver of invasion dynamics. As individuals seek reso
 $$
 K_{j,k} = 
 \begin{cases}
-dx, & j \ne k \\
+d_{j,k}, & j \ne k \\
 0, & j = k
 \end{cases}
 $$ 
-Where $dx$ can either denote a negative exponential dispersal matrix $e^{-\lambda W_{j,k}}$, or an adjacency matrix  $U_{j,k}$. Each row of the resultant dispersal matrix is then normalised to produce conditional probabilities $O_{j,k}$:
+Where $d$ can either denote a negative exponential dispersal matrix $e^{-\lambda W_{j,k}}$, or an adjacency matrix  $U_{j,k}$. Each row of the resultant dispersal matrix is then normalised to produce conditional probabilities $O_{j,k}$:
 
 
 
 $$
-O_{j,k} = \frac{dx} {\sum_{k} dx}
+O_{j,k} = \frac{d_{j,k}} {\sum_{k} d_{j,k}}
 $$ 
 and given each individual has a daily probability $r$ of dispersing, the true probability $X_{j,k}$ of moving from $j$ to $k$ is calculated as:
 
@@ -67,22 +67,23 @@ $$
 
 # Genetic inheritance 
 
-The gametes for each offspring are formed by selecting one allele per locus from each parent. Rather than assuming independent segregation, we modelled genetic linkage by generating correlated allele choices. To do this, we obtained the distance matrix $Q_{x,y}$ between pairs of loci based on their Euclidean distances and calculated the variance-covariance matrix $\Sigma$ using a covariance decay function. 
+The gametes for each offspring are formed by selecting one allele per locus from each parent. Rather than assuming independent segregation, we modelled genetic linkage by generating correlated allele choices. To do this, we obtained the distance matrix $Q_{x,y}$ between pairs of loci based on their Euclidean distances from each other along the chromosome and calculated the variance-covariance matrix $\Sigma$ using a covariance decay function. 
 
 $$
 \Sigma = \sigma^2 \exp(−λQ_{x,y})
 $$
 
-where $\sigma^2$ is a scaling factor and $\lambda$ controls the decay rate of the covariance between two loci as genetic distance increases. Using $\Sigma$, we then generated multivariate normal random effect values $\epsilon$ that were transformed to probabilities via a logistic function. The resulting probabilities were then used to conduct Bernoulli trials to determine which allele (from each parent) is inherited by the offspring for each locus. Thus, if $L$ is the number of loci, and $\Sigma$ the variance-covariance matrix describing correlations among loci, the multivariate random effect $\epsilon$ is given as:  
+where $\sigma^2$ is a scaling factor and $\lambda$ controls the decay rate of the covariance between two loci as genetic distance increases. Using $\Sigma$, we then generated multivariate normal random effect values $\epsilon$ that were transformed to probabilities via the inverse logit function. The resulting probabilities were then used to conduct Bernoulli trials to determine which allele (from each parent) is inherited by the offspring for each locus. Thus, if $L$ is the number of loci, and $\Sigma$ the variance-covariance matrix describing correlations among loci, the multivariate random effect $\epsilon$ is given as:  
 
 
 
 $$
-\epsilon_i \sim \mathcal{N}_L\left(\mu, \Sigma \right)
+\epsilon_i \sim \mathcal{N}_L\left(0, \Sigma \right)
 $$
 
-where $\epsilon_i = (\epsilon_{i1}, \dots, \epsilon_{iL})$ and $\mathcal{N}_L$ denotes the multivariate normal distribution, and $\mu$ is a vector with $L$ dimensional mean of 0. Consequently, the probability $\rho_{i}$ of inheriting an allele in any locus from a given parent using the logistic function becomes, where $\rho_{i}  = (\rho_{il} , \dots,\rho_{iL})$.
+where $\epsilon_i = (\epsilon_{i1}, \dots, \epsilon_{iL})$ and $\mathcal{N}_L$ denotes a multivariate normal distribution centred on 0, with covariance matrix, $\Sigma$. Consequently, the probability $\rho_{i}$ of inheriting an allele in any locus from a given parent becomes, where $\rho_{i}  = (\rho_{il} , \dots,\rho_{iL})$.
 
 $$
-\rho_{i} = \frac{1}{1 + (\exp (-\epsilon_{i}))}
+\rho_{i} = \frac{1}{1 + e^{-\epsilon_{i}}}
 $$
+
