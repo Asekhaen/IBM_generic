@@ -48,7 +48,7 @@ growth <- function(pop_patches,
     # growth 
     if (n.pop > 0){
       
-      exp_fecundity <- bev_holt(n.pop, fecundity, carrying_capacity)
+      exp_fecundity <- fec_dd(n.pop, dd_rate, prob_survival) #bev_holt(n.pop, fecundity, carrying_capacity)
       act_fecundity <- rpois(n.pop, exp_fecundity)
       
       selected_mate_idx <- sample(n.pop, n.pop, replace = TRUE)
@@ -104,15 +104,10 @@ growth <- function(pop_patches,
       
       # Update pop with offspring & fem population
       
-      if (overlapping) {
+        pop <- pop[rbinom(nrow(pop), 1, prob_survival) == 1, , drop = FALSE]    # survival 
         pop <- bind_rows(pop, offspring)
-        pop <- pop[rbinom(nrow(pop), 1, prob_survival) == 1, ]    # survival 
-      } else{
-        pop <- offspring
-        pop <- pop[rbinom(nrow(pop), 1, prob_survival) == 1, ]    # survival 
-      }
+
     }
-    
     # if turned on, this "if" statement simulates lethal effect of for individuals with 
     # homologous deleterious allele
     
@@ -216,7 +211,7 @@ run_model <- function(patches,
     
     # Dispersal
   
-      pop <- meta_dispersal(pop, dispersal_type, check = FALSE)
+      pop <- dispersal(pop, dispersal_type, check = FALSE)
 
     # Track daily population sizes per patch
     
