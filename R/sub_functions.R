@@ -3,9 +3,15 @@
 # Density-dependent reproduction function (add a reference here)
 
 bev_holt <- function(n_pop, fecundity, carrying_capacity) {
-  return(fecundity / (1 + ((fecundity - 1) / carrying_capacity) * n_pop))
+  return(fecundity / (1 + (fecundity - 1) / carrying_capacity * n_pop))
 }
 
+# Density dependent fecundity function
+fec_dd <- function(n_pop, dd_rate, prop_survival, c = 0.2){
+  fecundity <- (1-prop_survival)/c
+  expected_offspring <- fecundity*exp(-dd_rate*n_pop)
+  return(expected_offspring)
+}
 
 
 # Loci selection matrix: function to place loci at random on the genome (of size = 1)
