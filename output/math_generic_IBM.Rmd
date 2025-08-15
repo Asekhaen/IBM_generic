@@ -67,13 +67,13 @@ $$
 
 # Genetic inheritance 
 
-We assume that loci are arranged linearly along the genome of an individual. The gametes for each offspring are formed by selecting one allele per locus from each parent. Rather than assuming independent segregation, we modelled genetic linkage by generating correlated allele choices. To do this, we obtained the distance matrix $Q_{x,y}$ between pairs of loci based on their Euclidean distances and calculated the variance-covariance matrix $\Sigma$ using a covariance decay function. 
+The gametes for each offspring are formed by selecting one allele per locus from each parent. Rather than assuming independent segregation, we modelled genetic linkage by generating correlated allele choices. To do this, we obtained the distance matrix $Q_{x,y}$ between pairs of loci based on their Euclidean distances and calculated the variance-covariance matrix $\Sigma$ using a covariance decay function. 
 
 $$
 \Sigma = \sigma^2 \exp(−λQ_{x,y})
 $$
 
-where $\sigma^2$ is a scaling factor and $\lambda$ is a decay parameter that controls the covariance between two loci as the genetic distance between them increases. Using $\Sigma$, we then generated multivariate normal random effect values $\epsilon$ that were transformed to probabilities via a logistic function. The resulting probabilities were then used to conduct Bernoulli trials to determine which allele (from each parent) is inherited by the offspring for each locus. Thus, if $L$ is the number of loci, and $\Sigma$ the variance-covariance matrix describing correlations among loci, the multivariate random effect $\epsilon$ is given as:  
+where $\sigma^2$ is a scaling factor and $\lambda$ controls the decay rate of the covariance between two loci as genetic distance increases. Using $\Sigma$, we then generated multivariate normal random effect values $\epsilon$ that were transformed to probabilities via a logistic function. The resulting probabilities were then used to conduct Bernoulli trials to determine which allele (from each parent) is inherited by the offspring for each locus. Thus, if $L$ is the number of loci, and $\Sigma$ the variance-covariance matrix describing correlations among loci, the multivariate random effect $\epsilon$ is given as:  
 
 
 
