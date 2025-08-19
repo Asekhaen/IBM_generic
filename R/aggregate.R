@@ -11,25 +11,18 @@
 run_aggregate = function(sims) {
   
   message(" > Aggregating simulatons")
+
+  # Remove redundant variables from sims info
+  sims %<>% select(-run, -job_num)
   
   # Load model output for all simulations
-  output_list = load_simulations(sims)
-  
-  browser()
-  
-  # Extract and concatenate patch size results
-  patch_sizes_dt = output_list %>%
-    lapply(function(x) x$patch_sizes) %>%
-    rbindlist(idcol = "id")
+  output = load_simulations(sims)
 
-  # Extract and concatenate allele frequency results
-  allele_frequency_dt = output_list %>%
-    lapply(function(x) x$allele_frequency) %>%
-    rbindlist(idcol = "id")
-  
-  # Save aggregated, concatenated results
-  save_rds(patch_sizes_dt,      "compiled", "patch_sizes")
-  save_rds(allele_frequency_dt, "compiled", "allele_frequency")
+  # Concatenate seperate results for key model outcomes
+  concatenate_result(sims, output, "patch_sizes")
+  concatenate_result(sims, output, "allele_frequency")
+
+  # TODO: Deal with 'final_pop'
 }
 
 # ---------------------------------------------------------
@@ -67,5 +60,23 @@ load_attempt = function(file) {
     output = readRDS(file)
   
   return(output)
+}
+
+# ---------------------------------------------------------
+# Concatenate a given result into single datatable
+# ---------------------------------------------------------
+concatenate_result = function(sims, output, result) {
+
+  # Extract outcomes for this result only
+  result_dt = output %>%
+      lapply(function(x) x[[result]]) %>%
+      rbindlist(idcol = "id") %>%
+      # Append simulation details...
+      left_join(y  = sims, 
+                by = "id") %>%
+      relocate(names(sims), .before = 1)
+
+  # Save aggregated, concatenated result
+  save_rds(result_dt, "compiled", result)
 }
 

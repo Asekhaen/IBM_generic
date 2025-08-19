@@ -75,7 +75,7 @@ set_output_dir = function(o, pth) {
     # NOTE: Different set up for Pawsey - code repo in software, output in scratch
 
     # Name of this repo
-    repo = basename(pth$code)
+    repo = basename(dirname(pth$code))
 
     # Other details for constructuing path
     proj = o$hpc$project
