@@ -14,7 +14,7 @@
 run_acacia = function(direction) {
   
   # Only continue if specified by do_step
-  if (!is.element(5, o$do_step)) return()
+  if (!is.element(4, o$do_step)) return()
   
   # Ensure valid direction
   if (!direction %in% c("upload", "download"))
