@@ -14,7 +14,7 @@ source("dependencies.R")
 message("Running mosquito IBM")
 
 # Load options into global environment
-o = set_options(do_step = 0)  # See options.R
+o = set_options(do_step = 1 : 4)  # See options.R
 
 # 0) Run single test simualtion
 run_test()  # See test.R
