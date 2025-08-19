@@ -1,7 +1,7 @@
 ############################################################
 # LAUNCH
 #
-# Launch pipeline for mosquito IBM model.
+# Launch pipeline for mosquito individual-based model.
 #
 ############################################################
 
@@ -14,7 +14,7 @@ source("dependencies.R")
 message("Running mosquito IBM")
 
 # Load options into global environment
-o = set_options(do_step = 2)  # See options.R
+o = set_options(do_step = 1)  # See options.R
 
 # 1) Run simulations
 run_simulations()  # See simulations.R

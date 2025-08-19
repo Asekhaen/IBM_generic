@@ -65,7 +65,10 @@ packages = c(
   "parallel",      # Multicore version of lapply
   "rlist",         # List-related helper functions, such as list.remove
   "purrr",         # TODO: Write description
-  "truncnorm")     # TODO: Write description
+  "truncnorm",     # TODO: Write description
+  "parallel",      # Multicore version of lapply
+  "pals",          # Colour palettes
+  "progress")      # Stylish progress bars
 
 # ---- Install and/or load packages with pacman ----
 
