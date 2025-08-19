@@ -14,7 +14,7 @@ source("dependencies.R")
 message("Running mosquito IBM")
 
 # Load options into global environment
-o = set_options(do_step = 1)  # See options.R
+o = set_options(do_step = 1 : 4)  # See options.R
 
 # 1) Run simulations
 run_simulations()  # See simulations.R
@@ -26,7 +26,7 @@ run_analysis()  # See analysis.R
 run_plotting()  # See plotting.R
 
 # 4) Upload resuts to Acacia storage
-run_acacia("download")  # See acacia.R
+run_acacia("upload")  # See acacia.R
 
 # Finish up
 message("* Finished!")

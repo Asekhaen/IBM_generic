@@ -22,7 +22,7 @@ run_analysis = function() {
   patch_sizes_dt = read_rds("compiled", "patch_sizes")
   
   # Simulation outputs: allele_frequency
-  allele_frequency_dt = save_rds("compiled", "allele_frequency")
+  allele_frequency_dt = read_rds("compiled", "allele_frequency")
   
   # ---- Perform analysis here ----
   
