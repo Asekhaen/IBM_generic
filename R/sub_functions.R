@@ -56,11 +56,11 @@ which_allele_fn <- function(n_offspring, n_loci, cov_matrix){
 
 # negative exponential dispersal kernel  
 
-metapop <- function(coords, lambda, dispersal_frac) {
+metapop <- function(p) {
   # dispersal matrix 
-  dist_matrix <- as.matrix(dist(coords, method = "euclidean"))
+  dist_matrix <- as.matrix(dist(p$coords, method = "euclidean"))
   #exponential dispersal kernel
-  dispersal_kernel <- exp(-lambda * dist_matrix)
+  dispersal_kernel <- exp(-o$lambda * dist_matrix)
   # set the diagonal elements to 0 to prevent self-dispersal
   diag(dispersal_kernel) <- 0
   # make these rows sum to 1 to get probability of moving to other patch
@@ -71,8 +71,8 @@ metapop <- function(coords, lambda, dispersal_frac) {
   
   # normalise these to have the overall probability of dispersing to that patch,
   # and add back the probability of remaining
-  dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
-    (1 - dispersal_frac) * diag(nrow(dispersal_kernel))
+  dispersal_matrix <- p$dispersal_prob * rel_dispersal_matrix +
+    (1 - p$dispersal_prob) * diag(nrow(dispersal_kernel))
   
   return(dispersal_matrix)
 }
