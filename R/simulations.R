@@ -44,7 +44,7 @@ run_simulations = function() {
 # ---------------------------------------------------------
 # Generate full list of simulations to run based on analysis phase
 # ---------------------------------------------------------
-get_simulations = function() {
+get_simulations = function(test = FALSE) {
   
   # Construct simulation set
   sims = expand_grid(
@@ -60,6 +60,10 @@ get_simulations = function() {
   # Append machine-readable simulation IDs
   sims %<>% 
     mutate(id = ids, .before = 1)
+  
+  # Return 
+  if (test == TRUE)
+    return(sims)
   
   # ---- Skip existing sims ----
   

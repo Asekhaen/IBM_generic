@@ -1,5 +1,13 @@
+############################################################
+# MODEL
+#
+# Main model functionality.
+#
+############################################################
 
-#### Main simulation function 
+# ---------------------------------------------------------
+# Main simulation function 
+# ---------------------------------------------------------
 run_model <- function(sim) {
   
   # Restart random number generation
@@ -8,19 +16,21 @@ run_model <- function(sim) {
   # Create parameter set to run model with
   p = setup_model(sim)
   
+  # Initiate population
   pop <- ini_pop(o$patches,
                  o$n_per_patch,
                  o$n_loci,
                  p$init_frequency)
   
-  
+  # Initiate outputs
   patch_sizes <- list()
   allele_frequency <- list()
   # spread_rate <- list()
   # gen_time <- list()
   
+  # Main model loop
   for (year in 1 : o$sim_years) {
-    #if (year == 5) browser()
+
     cat("year", year, "Underway \n")
     
     # Growth with reproduction
@@ -35,9 +45,8 @@ run_model <- function(sim) {
                   cov_matrix = p$l.cov.mat,
                   sim_years = year)
     
-    dispersal_type = p$adjacency_matrix
-    
     # Dispersal
+    dispersal_type = p$adjacency_matrix
     pop <- dispersal(pop, dispersal_type, check = FALSE)
     
     # Track annual population sizes per patch, occupancy rates, etc.
@@ -70,8 +79,8 @@ run_model <- function(sim) {
         freq       = ifelse(total_allele_overall == 0, 0, deleterious / total_allele_overall)
       )
     })
-    allele_frequency_df <- bind_rows(allele_frequency)
     
+    allele_frequency_df <- bind_rows(allele_frequency)
   }
   
   # track spread or invasion rate
@@ -85,12 +94,15 @@ run_model <- function(sim) {
     final_pop = pop
   )
   
+  # Save model result to file
   save_rds(model_output, "sims", sim$id)
   
   return(model_output)
 }
 
+# ---------------------------------------------------------
 # Set up model parameters based on values in sim
+# ---------------------------------------------------------
 setup_model = function(sim) {
   
   # Initiate list of model parameters
@@ -117,7 +129,9 @@ setup_model = function(sim) {
   return(p)
 }
 
-# population setup: Initialisation ####
+# ---------------------------------------------------------
+# population setup: Initialisation
+# ---------------------------------------------------------
 ini_pop <- function(patches, n_per_patch, n_loci, init_frequency) {
   patches_pop <- list()
   
@@ -137,13 +151,12 @@ ini_pop <- function(patches, n_per_patch, n_loci, init_frequency) {
   return(patches_pop)
 }  
 
-
-# growth function ####
+# ---------------------------------------------------------
+# growth function
 # captures density-dependent reproduction using Beverton-Holt model, genetic 
 # (with linkage) inheritance, and whether the population is overlapping or 
 # non-overlapping
-# 
-
+# ---------------------------------------------------------
 growth <- function(pop_patches, 
                    n_loci,
                    carrying_capacity,
@@ -249,12 +262,14 @@ growth <- function(pop_patches,
   return(updated_pop_patches)
 }
 
+# ---------------------------------------------------------
 # dispersal: uses a negative exponential dispersal kernel (for spatial metapopulation) or  
 # adjacency nearest neighbour (for one dimensional space stepping stone model)
-
+#
 # negative exponential kernel ####
-
+# ---------------------------------------------------------
 dispersal <- function(pop, dispersal_type, check = FALSE) {
+  
   patch_indices <- dispersed_pop <- vector(mode = "list", length = nrow(dispersal_type))
   
   # get new patch indices for all individuals
