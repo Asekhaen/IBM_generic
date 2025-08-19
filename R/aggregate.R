@@ -15,6 +15,8 @@ run_aggregate = function(sims) {
   # Load model output for all simulations
   output_list = load_simulations(sims)
   
+  browser()
+  
   # Extract and concatenate patch size results
   patch_sizes_dt = output_list %>%
     lapply(function(x) x$patch_sizes) %>%

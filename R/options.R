@@ -58,7 +58,6 @@ set_options = function(do_step = NA, quiet = FALSE) {
   # Things that remain fixed in each simulation
   
   # Model options
-  
   o$prob_survival <- 0.7
   o$dd_rate <- 0.0001
   o$patches <- 7                               # Number of patches
@@ -77,21 +76,6 @@ set_options = function(do_step = NA, quiet = FALSE) {
   # Set flags for certain model features
   o$complete_sterile = TRUE
   o$overlapping = TRUE
-  
-  # ---- Seasonality settings ----
-  
-  # Seasonal settings
-  o$season = c("seasonal", "perennial")
-  
-  # ---- Time settings ----
-  
-  # Number of years over which to assess results
-  o$years_assess = 15
-  
-  # Years of analysis
-  o$year_start   = 2000
-  o$year_current = 2024
-  o$year_final   = 2040
   
   # ---- Uncertainty settings ----
   
@@ -120,11 +104,7 @@ set_options = function(do_step = NA, quiet = FALSE) {
     setonix = list(
       account   = o$hpc$project,
       partition = "work",
-      export    = "NONE"),
-    # For running on SciCore...
-    scicore = list(
-      account   = "penny",
-      qos       = "30min"))
+      export    = "NONE"))
   
   # Job size settings (HPC agnostic)
   o$job_size = list(
@@ -143,16 +123,6 @@ set_options = function(do_step = NA, quiet = FALSE) {
   
   # Action to take if user is already running cluster jobs
   o$cluster_conflict_action = "error"  # Set to 'none' to turn off
-  
-  # ---- Results and figure flags ----
-  
-  # Plotting flags (toggle on or off)
-  o$plot = list(
-    setting     = T,  # Setting-specific details
-    samples     = T,  # Parameter sampling visuals
-    eir2prev    = T,  # EIR-prevalence fit results
-    projections = F,  # Burden over time
-    impact      = T)  # Public health impact results
   
   # ---- Plotting options ----
   
