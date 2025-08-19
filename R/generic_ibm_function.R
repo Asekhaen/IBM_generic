@@ -36,8 +36,8 @@ growth <- function(pop_patches,
                    prob_survival,
                    overlapping,
                    cov_matrix,
-                   sim_days) {
-  # if(sim_days == 5) browser()
+                   sim_years) {
+  # if(sim_years == 5) browser()
   updated_pop_patches <- list()
   
   for (i in seq_along(pop_patches)) {
@@ -59,7 +59,13 @@ growth <- function(pop_patches,
       
       if (complete_sterile) {
         # homozygous <- (homo_loci > 0)
-        homozygous <- rowSums((pop$allele1 + pop$allele2) == 2)        # homozygous loci for each female
+        # homozygous <- rowSums((pop$allele1 + pop$allele2) == 2)        # homozygous loci for each female
+        
+        homozygous <- rowSums(
+          ((pop$allele1 + pop$allele2) == 2) |
+            ((pop$mate_allele1 + pop$mate_allele2) == 2)
+        )
+
         sterile <- as.numeric(!homozygous)
         n_offspring <- act_fecundity * sterile
       } else {
@@ -73,6 +79,8 @@ growth <- function(pop_patches,
     
     
     # Offspring generation: Draw the actual number of offspring from a Poisson distribution
+    
+    # n_offspring <- rpois(n.pop, n_offspring)
     
     total_offspring <- sum(n_offspring)
     
@@ -174,7 +182,7 @@ run_model <- function(patches,
                       carrying_capacity,
                       lethal_effect,
                       complete_sterile,
-                      sim_days,
+                      sim_years,
                       prob_survival,
                       overlapping,
                       cov_matrix,
@@ -193,9 +201,9 @@ run_model <- function(patches,
   # spread_rate <- list()
   # gen_time <- list()
   
-  for (day in 1:sim_days) {
-    #if (day == 5) browser()
-    cat("Day", day, "Underway \n")
+  for (year in 1:sim_years) {
+    #if (year == 5) browser()
+    cat("year", year, "Underway \n")
     
     # Growth with reproduction
     pop <- growth(pop_patches = pop, 
@@ -207,50 +215,44 @@ run_model <- function(patches,
                   prob_survival,
                   overlapping,
                   cov_matrix,
-                  sim_days = day)
+                  sim_years = year)
     
     # Dispersal
   
       pop <- dispersal(pop, dispersal_type, check = FALSE)
 
-    # Track daily population sizes per patch
+    # Track annual population sizes per patch, occupancy rates, etc.
+
+    patch_sizes[[year]] <- tibble(
+      year = year,
+      patch = seq_along(pop),
+      pop_size = sapply(pop, nrow),
+      patch_occupied = sum(pop_size > 0),
+      unoccupied = length(patch) - patch_occupied,
+      occupancy_rate = patch_occupied/length(patch)
+    )
+    patch_sizes_df <- bind_rows(patch_sizes)
+  
     
-    patch_sizes[[day]] <- do.call(rbind, lapply(seq_along(pop), function(patch_id) {
-      data.frame(
-        day = day,
-        patch = patch_id,
-        pop_size = nrow(pop[[patch_id]])
-      )
-    }))
-    patch_sizes_df <- do.call(rbind, patch_sizes)
+    # Track annual overall allele frequency per patch
     
+  allele_frequency[[year]] <-  lapply(seq_along(pop), function(patch_id) {
+    patch_pop <- pop[[patch_id]]
+    loci_n  <- ncol(patch_pop$allele1)  
+    n_ind   <- nrow(patch_pop$allele1)  
+    total_allele_overall <- 2 * n_ind * loci_n
     
-    # Track daily allele frequency per patch
-    
-    allele_frequency[[day]] <- do.call(rbind, lapply(seq_along(pop), function(patch_id) {
-      patch_pop <- pop[[patch_id]]
-      if (nrow(patch_pop) > 0) {
-        deleterious <- sum(patch_pop$allele1 == 1) + sum(patch_pop$allele2 == 1)
-        total <- 2 * nrow(patch_pop) * ncol(patch_pop$allele1)
-        wild_type <- total - deleterious
-        freq <- deleterious / total
-      } else {
-        deleterious <- 0
-        total <- 0
-        wild_type <- 0
-        freq <- 0
-      }
-      data.frame(
-        patch = patch_id,
-        wild = wild_type,
-        lethal = deleterious,
-        total = total,
-        freq = freq,
-        day = day
-      )
-    }
-    ))
-    allele_frequency_df <- do.call(rbind, allele_frequency)
+    overall <- tibble(
+      year        = year,
+      patch      = patch_id,
+      total      = total_allele_overall,
+      deleterious= sum(patch_pop$allele1 == 1) + sum(patch_pop$allele2 == 1),
+      wild       = total_allele_overall - deleterious,
+      freq       = ifelse(total_allele_overall == 0, 0, deleterious / total_allele_overall)
+    )
+  })
+  allele_frequency_df <- bind_rows(allele_frequency)
+  
   }
   
   # track spread or invasion rate

@@ -34,8 +34,8 @@ output <- run_model (patches = patches,
                    decay = decay,
                    lethal_effect = FALSE,
                    complete_sterile = TRUE,
-                   sim_days = sim_days,
-                   overlapping = FALSE,
+                   sim_years = sim_years,
+                   overlapping = TRUE,
                    dispersal_type = adjacency_matrix,
                    cov_matrix = l.cov.mat)
  
