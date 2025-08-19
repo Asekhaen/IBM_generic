@@ -11,7 +11,7 @@ set.seed(20250730)
 
 # Source functions and parameters 
 source("R/sub_functions.R")
-source("R/generic_ibm_function.R")
+source("R/generic_function.R")
 source("R/parameters_generic.R")
 
 
