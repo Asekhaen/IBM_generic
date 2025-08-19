@@ -59,6 +59,7 @@ packages = c(
   "stringr",       # TIDYVERSE
   "forcats",       # TIDYVERSE
   "lubridate",     # TIDYVERSE
+  "fs",            # File system operations
   "magrittr",      # Additional pipe operators, such as %<>%
   "yaml",          # Read YAML markup files
   "wrapr",         # Convenience functions, such as qc
