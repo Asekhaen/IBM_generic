@@ -1,19 +1,30 @@
-library(tidyverse)
-library(purrr)
-library(truncnorm)
+
+# load libraries needed
+
+
 
 
 ###########################################
 #               PARAMETERS                #
 ###########################################
 
-set.seed(20250730)
+set.seed(230)
 
 # Source functions and parameters 
 source("R/sub_functions.R")
-source("R/generic_ibm_function.R")
+source("R/generic_function.R")
 source("R/parameters_generic.R")
 
+packages <- c("ggplot2", 
+              "dplyr",
+              "tibble",
+              "tidyr", 
+              "readr", 
+              "purrr", 
+              "truncnorm")  
+
+
+load_libraries(packages)
 
 # plot(coords, cex = 4)
 # text(coords, labels = 1:patches)
@@ -23,7 +34,7 @@ source("R/parameters_generic.R")
 #            RUN   SIMULATION             #
 ###########################################
 
-output <- run_model (patches = patches,
+run_model (patches = patches,
                    pop_patches,
                    n_per_patch = n_per_patch,
                    n_loci = n_loci,
@@ -39,6 +50,8 @@ output <- run_model (patches = patches,
                    dispersal_type = adjacency_matrix,
                    cov_matrix = l.cov.mat)
  
+
+
 
 
 # # To run multiple scenarios with varying parameters, use the #purrr:pmap" function

@@ -258,13 +258,14 @@ run_model <- function(patches,
   # track spread or invasion rate
   
   # Return the collected data
-  list(
+  results <- list(
     patch_sizes = patch_sizes_df,
     allele_frequency = allele_frequency_df,
     # spread_rate <-
     # gen_time <- gen_time,
     final_pop = pop
   )
+  saveRDS(results, file = "C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\Generic_IBM_Proj\\IBM_generic\\output\\results.rds")
 }
 
 

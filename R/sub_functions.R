@@ -1,3 +1,13 @@
+# function to load packages 
+
+load_libraries <- function(pack) {
+  for (p in pack) {
+    if (!requireNamespace(p, quietly = TRUE)) {
+      install.packages(p)
+    }
+    library(p, character.only = TRUE)
+  }
+}
 
 
 # Density-dependent reproduction function (add a reference here)
@@ -101,4 +111,6 @@ step_stone <- function(n_patches, dispersal_frac) {
   
   return(dispersal_matrix)
 }
+
+
 
