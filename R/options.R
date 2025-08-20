@@ -35,14 +35,13 @@ set_options = function(do_step = NA, quiet = FALSE) {
   
   # Dispersal probability
   o$dispersal_prob <- c(
-    high = 0.01,
-    med  = 0.001,
-    low  = 0.0005)
+   high = 0.001,
+   low = 0.0001)
   
   # Initial frequency
   o$init_frequency <- c(
-    high = 0.25, 
-    low  = 0.1)
+   high = 0.25,
+   low = 0.1)
   
   # xxx....
   o$lethal_effect = c(
@@ -60,11 +59,11 @@ set_options = function(do_step = NA, quiet = FALSE) {
   # Model options
   o$prob_survival <- 0.7
   o$dd_rate <- 0.0001
-  o$patches <- 7                               # Number of patches
+  o$patches <- 7                           # Number of patches
   o$n_per_patch <- c(10000,0,0,0,0,0,0)    # Initial number of individuals per patch
-  o$beta <- 100                           # the adult male population size at which the daily probability of mating is 0.5.
-  o$sim_years <-20                         # Number of simulation in days
-  o$carrying_capacity = 10000             # carrying capacity  
+  o$beta <- 100                            # the adult male population size at which the daily probability of mating is 0.5.
+  o$sim_years <-50                         # Number of simulation in days
+  o$carrying_capacity = 10000              # carrying capacity  
   
   # dispersal parameters
   o$lambda <- 0.1

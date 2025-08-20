@@ -45,7 +45,6 @@ run_simulations = function() {
 # Generate full list of simulations to run based on analysis phase
 # ---------------------------------------------------------
 get_simulations = function(test = FALSE) {
-  
   # Construct simulation set
   sims = expand_grid(
     dispersal_prob = names(o$dispersal_prob), 

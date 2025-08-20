@@ -5,129 +5,6 @@
 #
 ############################################################
 
-# ---------------------------------------------------------
-# Main simulation function 
-# ---------------------------------------------------------
-run_model <- function(sim) {
-  
-  # Restart random number generation
-  set.seed(sim$seed)
-  
-  # Create parameter set to run model with
-  p = setup_model(sim)
-  
-  # Initiate population
-  pop <- ini_pop(o$patches,
-                 o$n_per_patch,
-                 o$n_loci,
-                 p$init_frequency)
-  
-  # Initiate outputs
-  patch_sizes <- list()
-  allele_frequency <- list()
-  # spread_rate <- list()
-  # gen_time <- list()
-  
-  # Main model loop
-  for (year in 1 : o$sim_years) {
-
-    cat("year", year, "Underway \n")
-    
-    # Growth with reproduction
-    pop <- growth(pop_patches = pop, 
-                  o$n_loci,
-                  o$carrying_capacity,
-                  p$fecundity,
-                  p$lethal_effect,
-                  o$complete_sterile,
-                  o$prob_survival,
-                  o$overlapping,
-                  cov_matrix = p$l.cov.mat,
-                  sim_years = year)
-    
-    # Dispersal
-    dispersal_type = p$adjacency_matrix
-    pop <- dispersal(pop, dispersal_type, check = FALSE)
-    
-    # Track annual population sizes per patch, occupancy rates, etc.
-    
-    patch_sizes[[year]] <- tibble(
-      year = year,
-      patch = seq_along(pop),
-      pop_size = sapply(pop, nrow),
-      patch_occupied = sum(pop_size > 0),
-      unoccupied = length(patch) - patch_occupied,
-      occupancy_rate = patch_occupied/length(patch)
-    )
-    patch_sizes_df <- bind_rows(patch_sizes)
-    
-    
-    # Track annual overall allele frequency per patch
-    
-    allele_frequency[[year]] <-  lapply(seq_along(pop), function(patch_id) {
-      patch_pop <- pop[[patch_id]]
-      loci_n  <- ncol(patch_pop$allele1)  
-      n_ind   <- nrow(patch_pop$allele1)  
-      total_allele_overall <- 2 * n_ind * loci_n
-      
-      overall <- tibble(
-        year        = year,
-        patch      = patch_id,
-        total      = total_allele_overall,
-        deleterious= sum(patch_pop$allele1 == 1) + sum(patch_pop$allele2 == 1),
-        wild       = total_allele_overall - deleterious,
-        freq       = ifelse(total_allele_overall == 0, 0, deleterious / total_allele_overall)
-      )
-    })
-    
-    allele_frequency_df <- bind_rows(allele_frequency)
-  }
-  
-  # track spread or invasion rate
-  
-  # Return the collected data
-  model_output = list(
-    patch_sizes = patch_sizes_df,
-    allele_frequency = allele_frequency_df,
-    # spread_rate <-pop
-    # gen_time <- gen_time,
-    final_pop = pop
-  )
-  
-  # Save model result to file
-  save_rds(model_output, "sims", sim$id)
-  
-  return(model_output)
-}
-
-# ---------------------------------------------------------
-# Set up model parameters based on values in sim
-# ---------------------------------------------------------
-setup_model = function(sim) {
-  
-  # Initiate list of model parameters
-  p = list.remove(sim, c("id", "seed"))
-  
-  # Overwrite names with actual values from o
-  for (var in names(p))
-    p[[var]] = o[[var]][[p[[var]]]]
-  
-  # ---- Set up matrices -----
-  
-  # create coordinates for the patches/locations 
-  p$coords <- as.data.frame(100 * matrix(runif(o$patches * 2), ncol = 2))
-  colnames(p$coords) <- c("x","y")
-  
-  # create a dispersal matrix using the created function 
-  p$neg_exponet_model <- metapop(p)
-  
-  p$adjacency_matrix <- step_stone(n_patches = o$patches, 
-                                   dispersal_frac = p$dispersal_prob)
-  
-  p$l.cov.mat <- place_loci_mat(o$n_loci, genome.size = 1, var = 1, o$decay)
-  
-  return(p)
-}
 
 # ---------------------------------------------------------
 # population setup: Initialisation
@@ -306,4 +183,129 @@ dispersal <- function(pop, dispersal_type, check = FALSE) {
   return(dispersed_pop)
 }
 
+
+
+# ---------------------------------------------------------
+# Main simulation function 
+# ---------------------------------------------------------
+run_model <- function(sim) {
+  
+  # Restart random number generation
+  set.seed(sim$seed)
+  
+  # Create parameter set to run model with
+  p = setup_model(sim)
+  
+  # Initiate population
+  pop <- ini_pop(o$patches,
+                 o$n_per_patch,
+                 o$n_loci,
+                 p$init_frequency)
+  
+  # Initiate outputs
+  patch_sizes <- list()
+  allele_frequency <- list()
+  # spread_rate <- list()
+  # gen_time <- list()
+  
+  # Main model loop
+  for (year in 1 : o$sim_years) {
+    
+    cat("year", year, "Underway \n")
+    
+    # Growth with reproduction
+    pop <- growth(pop_patches = pop, 
+                  o$n_loci,
+                  o$carrying_capacity,
+                  p$fecundity,
+                  p$lethal_effect,
+                  o$complete_sterile,
+                  o$prob_survival,
+                  o$overlapping,
+                  cov_matrix = p$l.cov.mat,
+                  sim_years = year)
+    
+    # Dispersal
+    dispersal_type = p$adjacency_matrix
+    pop <- dispersal(pop, dispersal_type, check = FALSE)
+    
+    # Track annual population sizes per patch, occupancy rates, etc.
+    
+    patch_sizes[[year]] <- tibble(
+      year = year,
+      patch = seq_along(pop),
+      pop_size = sapply(pop, nrow),
+      patch_occupied = sum(pop_size > 0),
+      unoccupied = length(patch) - patch_occupied,
+      occupancy_rate = patch_occupied/length(patch)
+    )
+    patch_sizes_df <- bind_rows(patch_sizes)
+    
+    
+    # Track annual overall allele frequency per patch
+    
+    allele_frequency[[year]] <-  lapply(seq_along(pop), function(patch_id) {
+      patch_pop <- pop[[patch_id]]
+      loci_n  <- ncol(patch_pop$allele1)  
+      n_ind   <- nrow(patch_pop$allele1)  
+      total_allele_overall <- 2 * n_ind * loci_n
+      
+      overall <- tibble(
+        year        = year,
+        patch      = patch_id,
+        total      = total_allele_overall,
+        deleterious= sum(patch_pop$allele1 == 1) + sum(patch_pop$allele2 == 1),
+        wild       = total_allele_overall - deleterious,
+        freq       = ifelse(total_allele_overall == 0, 0, deleterious / total_allele_overall)
+      )
+    })
+    
+    allele_frequency_df <- bind_rows(allele_frequency)
+  }
+  
+  # track spread or invasion rate
+  
+  # Return the collected data
+  model_output = list(
+    patch_sizes = patch_sizes_df,
+    allele_frequency = allele_frequency_df,
+    # spread_rate <-pop
+    # gen_time <- gen_time,
+    final_pop = pop
+  )
+  
+  # Save model result to file
+  save_rds(model_output, "sims", sim$id)
+  
+  return(model_output)
+}
+
+# ---------------------------------------------------------
+# Set up model parameters based on values in sim
+# ---------------------------------------------------------
+setup_model = function(sim) {
+  
+  # Initiate list of model parameters
+  p = list.remove(sim, c("id", "seed"))
+  
+  # Overwrite names with actual values from o
+  for (var in names(p))
+    p[[var]] = o[[var]][[p[[var]]]]
+  
+  # ---- Set up matrices -----
+  
+  # create coordinates for the patches/locations 
+  p$coords <- as.data.frame(100 * matrix(runif(o$patches * 2), ncol = 2))
+  colnames(p$coords) <- c("x","y")
+  
+  # create a dispersal matrix using the created function 
+  p$neg_exponet_model <- metapop(p)
+  
+  p$adjacency_matrix <- step_stone(n_patches = o$patches, 
+                                   dispersal_frac = p$dispersal_prob)
+  
+  p$l.cov.mat <- place_loci_mat(o$n_loci, genome.size = 1, var = 1, o$decay)
+  
+  return(p)
+}
 
