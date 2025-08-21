@@ -133,7 +133,69 @@ growth <- function(pop_patches,
 # dispersal: uses a negative exponential dispersal kernel (for spatial metapopulation) or  
 # adjacency nearest neighbour (for one dimensional space stepping stone model)
 
-# negative exponential kernel ####
+
+
+# negative exponential dispersal kernel  
+
+metapop <- function(coords, lambda, dispersal_frac) {
+  # dispersal matrix 
+  dist_matrix <- as.matrix(dist(coords, method = "euclidean"))
+  #exponential dispersal kernel
+  dispersal_kernel <- exp(-lambda * dist_matrix)
+  # set the diagonal elements to 0 to prevent self-dispersal
+  diag(dispersal_kernel) <- 0
+  # make these rows sum to 1 to get probability of moving to other patch
+  # *if* they left. This dispersal matrix gives the probability of the vector
+  # vector moving between patches
+  rel_dispersal_matrix <- sweep(dispersal_kernel, 1,
+                                rowSums(dispersal_kernel), FUN = "/")
+  
+  # normalise these to have the overall probability of dispersing to that patch,
+  # and add back the probability of remaining
+  dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
+    (1 - dispersal_frac) * diag(nrow(dispersal_kernel))
+  
+  return(dispersal_matrix)
+}
+
+
+
+# adjacency matrix 
+
+step_stone <- function(n_patches, dispersal_frac) {
+  
+  matrix_landscape <- matrix(0, n_patches, n_patches)
+  adjacency <- abs(row(matrix_landscape) - col(matrix_landscape)) == 1
+  adjacency[] <- as.numeric(adjacency)
+  
+  # make these rows sum to 1 to get probability of moving to other patch
+  # *if* they left. This dispersal matrix gives the probability of the vector
+  # vector moving between patches
+  rel_dispersal_matrix <- sweep(adjacency, 1,
+                                rowSums(adjacency), FUN = "/")
+  
+  # normalise these to have the overall probability of dispersing to that patch,
+  # and add back the probability of remaining
+  dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
+    (1 - dispersal_frac) * diag(nrow(adjacency))
+  
+  return(dispersal_matrix)
+}
+
+
+
+
+# create a dispersal matrix using the created function 
+neg_exponet_model <- metapop (coords = coords, 
+                              lambda = lambda, 
+                              dispersal_frac = dispersal_prob)
+
+
+adjacency_matrix <- step_stone(n_patches = patches, 
+                               dispersal_frac = dispersal_prob)
+
+
+
 
 dispersal <- function(pop, dispersal_type, check = FALSE) {
   patch_indices <- dispersed_pop <- vector(mode = "list", length = nrow(dispersal_type))
@@ -171,6 +233,13 @@ dispersal <- function(pop, dispersal_type, check = FALSE) {
   }
   return(dispersed_pop)
 }
+
+
+
+
+
+
+
 
 #### Simulation function 
 run_model <- function(patches,

@@ -20,8 +20,9 @@ packages <- c("ggplot2",
               "tibble",
               "tidyr", 
               "readr", 
-              "purrr", 
-              "truncnorm")  
+              "purrr",       # uses pmap to loop through different scenarios
+              "furrr",       # multisession i.e. distribute work across many cores
+              "progressr")   # shows the progress
 
 
 load_libraries(packages)
@@ -35,20 +36,21 @@ load_libraries(packages)
 ###########################################
 
 run_model (patches = patches,
-                   pop_patches,
-                   n_per_patch = n_per_patch,
-                   n_loci = n_loci,
-                   init_frequency = init_frequency,
-                   fecundity = fecundity,
-                   carrying_capacity = carrying_capacity,
-                   prob_survival = prob_survival,
-                   decay = decay,
-                   lethal_effect = FALSE,
-                   complete_sterile = TRUE,
-                   sim_years = sim_years,
-                   overlapping = TRUE,
-                   dispersal_type = adjacency_matrix,
-                   cov_matrix = l.cov.mat)
+           pop_patches,
+           n_per_patch = n_per_patch,
+           n_loci = n_loci,
+           init_frequency = init_frequency,
+           fecundity = fecundity,
+           carrying_capacity = carrying_capacity,
+           prob_survival = prob_survival,
+           decay = decay,
+           lethal_effect = FALSE,
+           complete_sterile = TRUE,
+           sim_years = sim_years,
+           overlapping = TRUE,
+           dispersal_type = adjacency_matrix,
+           cov_matrix = l.cov.mat,
+           dispersal_frac = dispersal_prob)
  
 
 
@@ -57,44 +59,45 @@ run_model (patches = patches,
 # # To run multiple scenarios with varying parameters, use the #purrr:pmap" function
 # 
 # 
-# # Example: different init_frequency and fecundity
-# simulation_scenarios <- expand.grid(
-#   init_frequency = c(0.05, 0.1, 0.25, 0.5),
-#   fecundity = c(5, 10, 20, 50),
-#   fecundity_effect = c(0, 0.1, 0.2)
-#   n_loci = c(2,4,8,16,32)
-# )
-# 
-# 
-# sim_output <- simulation_scenarios |>
-#   mutate(simulation_result = pmap(.l = list(init_frequency, fecundity, fecundity_effect, n_loci),
-#                                   .f = function(init_frequency, fecundity, fecundity_effect, n_loci) {
-#                                     simulation (
-#                                       patches = patches,
-#                                       n_per_patch = n_per_patch, 
-#                                       coords = coords,
-#                                       n_loci = n_loci, 
-#                                       init_frequency = init_frequency,
-#                                       bloodmeal_prob = bloodmeal_prob, 
-#                                       fecundity = fecundity, 
-#                                       conversion_prob,
-#                                       resistance_prob,
-#                                       daily_survival = daily_survival, 
-#                                       daily_transition = daily_transition,
-#                                       alpha = alpha,
-#                                       beta = beta,
-#                                       decay = decay,
-#                                       fecundity_effect = fecundity_effect,
-#                                       lethal_effect = FALSE,
-#                                       complete_sterile = FALSE,
-#                                       sim_days = sim_days,
-#                                       dispersal_matrix = dispersal_matrix,
-#                                       t_max,
-#                                       t_min,
-#                                       sigma,
-#                                       gdd_required = gdd_required,
-#                                       ldt = ldt)
-#                                   }))
+# Example: different init_frequency and fecundity
+simulation_scenarios <- expand.grid(
+  init_frequency = c(0.05, 0.1, 0.25, 0.5),
+  fecundity = c(1, 5, 10, 20),
+  dispersal_prob = c(0.00001, 0.0001, 0.0005, 0.001),
+  n_loci = c(5,10,20)
+)
+
+
+
+sim_output <- simulation_scenarios |>
+  mutate(simulation_result = pmap(.l = list(init_frequency, fecundity, fecundity_effect, n_loci),
+                                  .f = function(init_frequency, fecundity, fecundity_effect, n_loci) {
+                                    simulation (
+                                      patches = patches,
+                                      n_per_patch = n_per_patch,
+                                      coords = coords,
+                                      n_loci = n_loci,
+                                      init_frequency = init_frequency,
+                                      bloodmeal_prob = bloodmeal_prob,
+                                      fecundity = fecundity,
+                                      conversion_prob,
+                                      resistance_prob,
+                                      daily_survival = daily_survival,
+                                      daily_transition = daily_transition,
+                                      alpha = alpha,
+                                      beta = beta,
+                                      decay = decay,
+                                      fecundity_effect = fecundity_effect,
+                                      lethal_effect = FALSE,
+                                      complete_sterile = FALSE,
+                                      sim_days = sim_days,
+                                      dispersal_matrix = dispersal_matrix,
+                                      t_max,
+                                      t_min,
+                                      sigma,
+                                      gdd_required = gdd_required,
+                                      ldt = ldt)
+                                  }))
 
 
 
