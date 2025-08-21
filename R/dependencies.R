@@ -75,18 +75,19 @@ packages = c(
 
 message("* Installing required packages")
 
-# Check whether pacman itself has been installed
-pacman_installed = "pacman" %in% rownames(installed.packages())
+# Function to load package - and install if needed
+install_load = function(package) {
+  
+  # Check if installed - do the install if not
+  if (!requireNamespace(package))
+    install.packages(package)
+  
+  # Load the package
+  library(package, character.only = TRUE)
+}
 
-# If not, install it
-if (!pacman_installed) 
-  install.packages("pacman")
-
-# Load pacman
-library(pacman) 
-
-# Load all required packages, installing them if required
-pacman::p_load(char = packages)
+# Apply function to each package
+lapply(packages, install_load)
 
 # ---- Redefine or unmask particular functions ----
 
