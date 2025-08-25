@@ -64,53 +64,60 @@ which_allele_fn <- function(n_offspring, n_loci, cov_matrix){
 # }
 
 
-# negative exponential dispersal kernel  
 
-metapop <- function(coords, lambda, dispersal_frac) {
-  # dispersal matrix 
-  dist_matrix <- as.matrix(dist(coords, method = "euclidean"))
-  #exponential dispersal kernel
-  dispersal_kernel <- exp(-lambda * dist_matrix)
-  # set the diagonal elements to 0 to prevent self-dispersal
-  diag(dispersal_kernel) <- 0
-  # make these rows sum to 1 to get probability of moving to other patch
-  # *if* they left. This dispersal matrix gives the probability of the vector
-  # vector moving between patches
-  rel_dispersal_matrix <- sweep(dispersal_kernel, 1,
-                                rowSums(dispersal_kernel), FUN = "/")
+
+# dispersal: uses a either a negative exponential dispersal kernel (for spatial 
+# metapopulation) or nearest neighbour/adjacency matrix (one dimensional space 
+# stepping stone model). This function  creates a dispersal kernel: either adjacency 
+# matrix or a negative exponential decay matrix based on a true of false statement 
+# (see run_file.R)
+
+create_dispersal_matrix <- function(n_patches, lambda, dispersal_frac, adjacency_matrix){
   
-  # normalise these to have the overall probability of dispersing to that patch,
-  # and add back the probability of remaining
-  dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
-    (1 - dispersal_frac) * diag(nrow(dispersal_kernel))
-  
+  if(adjacency_matrix){
+    matrix_landscape <- matrix(0, n_patches, n_patches)
+    adjacency <- abs(row(matrix_landscape) - col(matrix_landscape)) == 1
+    adjacency[] <- as.numeric(adjacency)
+    
+    # make these rows sum to 1 to get probability of moving to other patch
+    # *if* they left. This dispersal matrix gives the probability of the vector
+    # vector moving between patches
+    rel_dispersal_matrix <- sweep(adjacency, 1,
+                                  rowSums(adjacency), FUN = "/")
+    
+    # normalise these to have the overall probability of dispersing to that patch,
+    # and add back the probability of remaining
+    dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
+      (1 - dispersal_frac) * diag(nrow(adjacency))
+  } else {
+    # create coordinates for the patches/locations 
+    coords <- as.data.frame(100 * matrix(runif(n_patches * 2), ncol = 2))
+    colnames(coords) <- c("x","y")
+    
+    # dispersal matrix 
+    dist_matrix <- as.matrix(dist(coords, method = "euclidean"))
+    #exponential dispersal kernel
+    dispersal_kernel <- exp(-lambda * dist_matrix)
+    # set the diagonal elements to 0 to prevent self-dispersal
+    diag(dispersal_kernel) <- 0
+    # make these rows sum to 1 to get probability of moving to other patch
+    # *if* they left. This dispersal matrix gives the probability of the vector
+    # vector moving between patches
+    rel_dispersal_matrix <- sweep(dispersal_kernel, 1,
+                                  rowSums(dispersal_kernel), FUN = "/")
+    
+    # normalise these to have the overall probability of dispersing to that patch,
+    # and add back the probability of remaining
+    dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
+      (1 - dispersal_frac) * diag(nrow(dispersal_kernel))
+  }
   return(dispersal_matrix)
 }
 
 
 
 
-# adjacency matrix 
-
-step_stone <- function(n_patches, dispersal_frac) {
-  
-  matrix_landscape <- matrix(0, n_patches, n_patches)
-  adjacency <- abs(row(matrix_landscape) - col(matrix_landscape)) == 1
-  adjacency[] <- as.numeric(adjacency)
-  
-  # make these rows sum to 1 to get probability of moving to other patch
-  # *if* they left. This dispersal matrix gives the probability of the vector
-  # vector moving between patches
-  rel_dispersal_matrix <- sweep(adjacency, 1,
-                                rowSums(adjacency), FUN = "/")
-  
-  # normalise these to have the overall probability of dispersing to that patch,
-  # and add back the probability of remaining
-  dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
-    (1 - dispersal_frac) * diag(nrow(adjacency))
-  
-  return(dispersal_matrix)
-}
 
 
-
+# plot(coords, cex = 4)
+# text(coords, labels = 1:patches)

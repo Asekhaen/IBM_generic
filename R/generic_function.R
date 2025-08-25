@@ -1,10 +1,10 @@
 
 
 # population setup: Initialisation ####
-ini_pop <- function(patches, n_per_patch, n_loci, init_frequency) {
+ini_pop <- function(n_patches, n_per_patch, n_loci, init_frequency) {
   patches_pop <- list()
   
-  for (i in 1:patches) {
+  for (i in 1:n_patches) {
     patches_pop[[i]] <- tibble(
       allele1 = matrix(rbinom(n = n_per_patch[i] * n_loci, 
                               size = 1, prob = init_frequency), ncol = n_loci), # 0 = wild-type, 1 = drive allele
@@ -14,7 +14,7 @@ ini_pop <- function(patches, n_per_patch, n_loci, init_frequency) {
       mate_allele2 = matrix(NA, nrow = n_per_patch[i], ncol = n_loci),
       alive = TRUE
     )
-    if (length(n_per_patch) != patches) warning("Initial patch population does not equal specified number of patches")
+    if (length(n_per_patch) != n_patches) warning("Initial patch population does not equal specified number of patches")
   }
   
   return(patches_pop)
@@ -48,7 +48,7 @@ growth <- function(pop_patches,
     # growth 
     if (n.pop > 0){
       
-      exp_fecundity <- fec_dd(n.pop, dd_rate, prob_survival) #bev_holt(n.pop, fecundity, carrying_capacity)
+      exp_fecundity <- fec_dd(n.pop, dd_rate, prob_survival) # bev_holt(n.pop, fecundity, carrying_capacity)
       act_fecundity <- rpois(n.pop, exp_fecundity)
       
       selected_mate_idx <- sample(n.pop, n.pop, replace = TRUE)
@@ -92,6 +92,10 @@ growth <- function(pop_patches,
       mate_germline <- pop[rep(1:n.pop, n_offspring), c("mate_allele1", "mate_allele2")]
       
 
+      # create covariance matrix betwee loci
+      cov_matrix <- place_loci_mat(n_loci, genome.size = 1, var = 1, decay)
+      
+      
       # Genetic inheritance
       
       which_allele_ind <- which_allele_fn(total_offspring, n_loci, cov_matrix) # female gametes
@@ -130,75 +134,13 @@ growth <- function(pop_patches,
   return(updated_pop_patches)
 }
 
-# dispersal: uses a negative exponential dispersal kernel (for spatial metapopulation) or  
-# adjacency nearest neighbour (for one dimensional space stepping stone model)
 
-
-
-# negative exponential dispersal kernel  
-
-metapop <- function(coords, lambda, dispersal_frac) {
-  # dispersal matrix 
-  dist_matrix <- as.matrix(dist(coords, method = "euclidean"))
-  #exponential dispersal kernel
-  dispersal_kernel <- exp(-lambda * dist_matrix)
-  # set the diagonal elements to 0 to prevent self-dispersal
-  diag(dispersal_kernel) <- 0
-  # make these rows sum to 1 to get probability of moving to other patch
-  # *if* they left. This dispersal matrix gives the probability of the vector
-  # vector moving between patches
-  rel_dispersal_matrix <- sweep(dispersal_kernel, 1,
-                                rowSums(dispersal_kernel), FUN = "/")
+dispersal <- function(pop, n_patches, lambda, dispersal_frac, adjacency_matrix, check = FALSE) {
   
-  # normalise these to have the overall probability of dispersing to that patch,
-  # and add back the probability of remaining
-  dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
-    (1 - dispersal_frac) * diag(nrow(dispersal_kernel))
+  # create a dispersal matrix using the created function 
+  disp_matrix <- create_dispersal_matrix(n_patches, lambda, dispersal_frac, adjacency_matrix)
   
-  return(dispersal_matrix)
-}
-
-
-
-# adjacency matrix 
-
-step_stone <- function(n_patches, dispersal_frac) {
-  
-  matrix_landscape <- matrix(0, n_patches, n_patches)
-  adjacency <- abs(row(matrix_landscape) - col(matrix_landscape)) == 1
-  adjacency[] <- as.numeric(adjacency)
-  
-  # make these rows sum to 1 to get probability of moving to other patch
-  # *if* they left. This dispersal matrix gives the probability of the vector
-  # vector moving between patches
-  rel_dispersal_matrix <- sweep(adjacency, 1,
-                                rowSums(adjacency), FUN = "/")
-  
-  # normalise these to have the overall probability of dispersing to that patch,
-  # and add back the probability of remaining
-  dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
-    (1 - dispersal_frac) * diag(nrow(adjacency))
-  
-  return(dispersal_matrix)
-}
-
-
-
-
-# create a dispersal matrix using the created function 
-neg_exponet_model <- metapop (coords = coords, 
-                              lambda = lambda, 
-                              dispersal_frac = dispersal_prob)
-
-
-adjacency_matrix <- step_stone(n_patches = patches, 
-                               dispersal_frac = dispersal_prob)
-
-
-
-
-dispersal <- function(pop, dispersal_type, check = FALSE) {
-  patch_indices <- dispersed_pop <- vector(mode = "list", length = nrow(dispersal_type))
+  patch_indices <- dispersed_pop <- vector(mode = "list", length = nrow(disp_matrix))
   
   # get new patch indices for all individuals
   for (i in seq_along(pop)) {
@@ -207,7 +149,7 @@ dispersal <- function(pop, dispersal_type, check = FALSE) {
     
     if (n_patch == 0) next  # skip patch if no individuals
     
-    dispersal_probs <- dispersal_type[i, ]
+    dispersal_probs <- disp_matrix[i, ]
     # Sample new patch indices for all individuals in this patch
     new_pop_indices <- sample(1:length(dispersal_probs), size = n_patch, replace = TRUE, prob = dispersal_probs)
     # Store original row indices and their assigned new patch
@@ -236,13 +178,8 @@ dispersal <- function(pop, dispersal_type, check = FALSE) {
 
 
 
-
-
-
-
-
 #### Simulation function 
-run_model <- function(patches,
+run_model <- function(n_patches,
                       pop_patches,
                       n_per_patch,
                       n_loci,
@@ -255,16 +192,14 @@ run_model <- function(patches,
                       prob_survival,
                       overlapping,
                       cov_matrix,
-                      decay,
-                      dispersal_type
+                      lambda, 
+                      adjacency_matrix,
+                      dispersal_frac,
+                      decay
                       ){
   
-  pop <- ini_pop(patches,
-                 n_per_patch,
-                 n_loci,
-                 init_frequency)
+  pop <- ini_pop(n_patches, n_per_patch, n_loci, init_frequency)
   
-
   patch_sizes <- list()
   allele_frequency <- list()
   # spread_rate <- list()
@@ -272,7 +207,7 @@ run_model <- function(patches,
   
   for (year in 1:sim_years) {
     #if (year == 5) browser()
-    cat("year", year, "Underway \n")
+    #cat("year", year, "Underway \n")
     
     # Growth with reproduction
     pop <- growth(pop_patches = pop, 
@@ -287,8 +222,12 @@ run_model <- function(patches,
                   sim_years = year)
     
     # Dispersal
-  
-      pop <- dispersal(pop, dispersal_type, check = FALSE)
+    pop <- dispersal(pop, 
+                     n_patches, 
+                     lambda, 
+                     dispersal_frac, 
+                     adjacency_matrix, 
+                     check = FALSE)
 
     # Track annual population sizes per patch, occupancy rates, etc.
 
@@ -329,12 +268,10 @@ run_model <- function(patches,
   # Return the collected data
   results <- list(
     patch_sizes = patch_sizes_df,
-    allele_frequency = allele_frequency_df,
+    allele_frequency = allele_frequency_df
     # spread_rate <-
     # gen_time <- gen_time,
-    final_pop = pop
   )
-  saveRDS(results, file = "C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\Generic_IBM_Proj\\IBM_generic\\output\\results.rds")
 }
 
 
