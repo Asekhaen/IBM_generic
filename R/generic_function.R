@@ -3,7 +3,6 @@
 # population setup: Initialisation ####
 ini_pop <- function(n_patches, n_per_patch, n_loci, init_frequency) {
   patches_pop <- list()
-  
   for (i in 1:n_patches) {
     patches_pop[[i]] <- tibble(
       allele1 = matrix(rbinom(n = n_per_patch[i] * n_loci, 
@@ -16,7 +15,6 @@ ini_pop <- function(n_patches, n_per_patch, n_loci, init_frequency) {
     )
     if (length(n_per_patch) != n_patches) warning("Initial patch population does not equal specified number of patches")
   }
-  
   return(patches_pop)
 }  
 
@@ -34,12 +32,11 @@ growth <- function(pop_patches,
                    lethal_effect,
                    complete_sterile,
                    prob_survival,
+                   dd_rate,
                    overlapping,
-                   cov_matrix,
                    sim_years) {
-  # if(sim_years == 5) browser()
+ #if(sim_years == 5) browser()
   updated_pop_patches <- list()
-  
   for (i in seq_along(pop_patches)) {
     pop <- pop_patches[[i]]  
     
@@ -48,9 +45,15 @@ growth <- function(pop_patches,
     # growth 
     if (n.pop > 0){
       
-      exp_fecundity <- fec_dd(n.pop, dd_rate, prob_survival) # bev_holt(n.pop, fecundity, carrying_capacity)
+      # exp_fecundity <- fec_dd(n.pop, dd_rate, prob_survival)
+      # act_fecundity <- rpois(n.pop, exp_fecundity)
+
+      exp_fecundity <- bev_holt(n.pop, dd_rate, fecundity)
       act_fecundity <- rpois(n.pop, exp_fecundity)
-      
+
+      # exp_fecundity <- bev_holt(n.pop, fecundity, carrying_capacity)
+      # act_fecundity <- rpois(n.pop, exp_fecundity)
+
       selected_mate_idx <- sample(n.pop, n.pop, replace = TRUE)
       selected_mate <- pop[selected_mate_idx,]
       pop$mate_allele1 <- selected_mate$allele1
@@ -114,10 +117,18 @@ growth <- function(pop_patches,
         alive = TRUE
       )
       
-      # Update pop with offspring & fem population
+   
+      # Update pop with offspring 
+      pop <- offspring
+      # pop <- bind_rows(pop, offspring)
+     
       
-        pop <- pop[rbinom(nrow(pop), 1, prob_survival) == 1, , drop = FALSE]    # survival 
-        pop <- bind_rows(pop, offspring)
+      # pop <- pop |>
+      #   mutate(
+      #     alive = rbinom(n(), 1, survival_ricker(nrow(pop), carrying_capacity, max_survival, decay_rate)
+      #     ) == 1
+      #   )
+      # pop <- pop[pop$alive,]
 
     }
     # if turned on, this "if" statement simulates lethal effect of for individuals with 
@@ -127,7 +138,7 @@ growth <- function(pop_patches,
       homozygous_lethal <- (pop$allele1 == 1) & (pop$allele2 == 1)
       any_homozygous <- rowSums(homozygous_lethal) > 0
       #pop <- filter(pop, !any_homozygous)
-      pop <- pop[pop[!any_homozygous],]
+      pop <- pop[!any_homozygous,]
     }
     updated_pop_patches[[i]] <- pop
   }
@@ -190,8 +201,8 @@ run_model <- function(n_patches,
                       complete_sterile,
                       sim_years,
                       prob_survival,
+                      dd_rate,
                       overlapping,
-                      cov_matrix,
                       lambda, 
                       adjacency_matrix,
                       dispersal_frac,
@@ -200,14 +211,13 @@ run_model <- function(n_patches,
   
   pop <- ini_pop(n_patches, n_per_patch, n_loci, init_frequency)
   
-  patch_sizes <- list()
+  patch_stats <- list()
   allele_frequency <- list()
-  # spread_rate <- list()
-  # gen_time <- list()
-  
+  allele_freq_per_locus <- list()
+
   for (year in 1:sim_years) {
     #if (year == 5) browser()
-    #cat("year", year, "Underway \n")
+    cat("year", year, "Underway \n")
     
     # Growth with reproduction
     pop <- growth(pop_patches = pop, 
@@ -217,8 +227,8 @@ run_model <- function(n_patches,
                   lethal_effect,
                   complete_sterile,
                   prob_survival,
+                  dd_rate,
                   overlapping,
-                  cov_matrix,
                   sim_years = year)
     
     # Dispersal
@@ -231,7 +241,7 @@ run_model <- function(n_patches,
 
     # Track annual population sizes per patch, occupancy rates, etc.
 
-    patch_sizes[[year]] <- tibble(
+    patch_stats[[year]] <- tibble(
       year = year,
       patch = seq_along(pop),
       pop_size = sapply(pop, nrow),
@@ -239,8 +249,10 @@ run_model <- function(n_patches,
       unoccupied = length(patch) - patch_occupied,
       occupancy_rate = patch_occupied/length(patch)
     )
-    patch_sizes_df <- bind_rows(patch_sizes)
+    patch_stats_df <- bind_rows(patch_stats)
   
+    
+    
     
     # Track annual overall allele frequency per patch
     
@@ -261,16 +273,45 @@ run_model <- function(n_patches,
   })
   allele_frequency_df <- bind_rows(allele_frequency)
   
+  
+  # allele frequency per locus per patch
+  
+  allele_freq_per_locus[[year]] <- lapply(seq_along(pop), function(patch_id) {
+    patch_pop <- pop[[patch_id]]
+    loci_n    <- ncol(patch_pop$allele1)
+    n_ind     <- nrow(patch_pop$allele1)
+    total_per_locus <- 2 * n_ind        # per locus = 2 alleles per individual
+    
+    # deleterious alleles per locus
+    deleterious_per_locus <- colSums(patch_pop$allele1 == 1) +
+      colSums(patch_pop$allele2 == 1)
+    
+    # calculate frequencies per locus 
+    freq_per_locus <- if (total_per_locus == 0) {
+      rep(0, loci_n)
+    } else {
+      deleterious_per_locus / total_per_locus
+    }
+    
+    tibble(
+      year  = year,
+      patch = patch_id,
+      !!!setNames(as.list(freq_per_locus), paste0("locus", seq_len(loci_n)))
+    )
+  })
+  
+  allele_freq_per_locus_df <- bind_rows(allele_freq_per_locus)
+  
   }
+  
   
   # track spread or invasion rate
   
   # Return the collected data
   results <- list(
-    patch_sizes = patch_sizes_df,
-    allele_frequency = allele_frequency_df
-    # spread_rate <-
-    # gen_time <- gen_time,
+    patch_stats = patch_stats_df,
+    allele_frequency = allele_frequency_df,
+    allele_freq_per_locus = allele_freq_per_locus_df
   )
 }
 

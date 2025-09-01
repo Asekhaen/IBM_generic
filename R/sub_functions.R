@@ -10,15 +10,31 @@ load_libraries <- function(pack) {
 }
 
 
-# Density-dependent reproduction function (add a reference here)
+# Density-dependent reproduction (add a reference here)
 
-bev_holt <- function(n_pop, fecundity, carrying_capacity) {
-  return(fecundity / (1 + (fecundity - 1) / carrying_capacity * n_pop))
+
+#
+
+bev_holt <- function(n_pop, dd_rate, fecundity){
+  expected_offspring <- fecundity/(1 + dd_rate*n_pop)
+  return(expected_offspring)
 }
 
+
+# bev_holt <- function(n_pop, fecundity, carrying_capacity) {
+#   return(fecundity / (1 + (fecundity - 1) / carrying_capacity * n_pop))
+# }
+# 
+# 
+# survival_ricker <- function(n_pop, carrying_capacity, max_survival, decay_rate){
+#   surv <- max_survival * exp(-decay_rate * (n_pop/carrying_capacity))
+#   return(surv) 
+# }
+# 
+# 
 # Density dependent fecundity function
-fec_dd <- function(n_pop, dd_rate, prop_survival, c = 0.2){
-  fecundity <- (1-prop_survival)/c
+fec_dd <- function(n_pop, dd_rate, prob_survival, c = 0.06){
+  fecundity <- (1-prob_survival)/c
   expected_offspring <- fecundity*exp(-dd_rate*n_pop)
   return(expected_offspring)
 }
@@ -73,28 +89,28 @@ which_allele_fn <- function(n_offspring, n_loci, cov_matrix){
 # (see run_file.R)
 
 create_dispersal_matrix <- function(n_patches, lambda, dispersal_frac, adjacency_matrix){
-  
+
   if(adjacency_matrix){
     matrix_landscape <- matrix(0, n_patches, n_patches)
     adjacency <- abs(row(matrix_landscape) - col(matrix_landscape)) == 1
     adjacency[] <- as.numeric(adjacency)
-    
+
     # make these rows sum to 1 to get probability of moving to other patch
     # *if* they left. This dispersal matrix gives the probability of the vector
     # vector moving between patches
     rel_dispersal_matrix <- sweep(adjacency, 1,
                                   rowSums(adjacency), FUN = "/")
-    
+
     # normalise these to have the overall probability of dispersing to that patch,
     # and add back the probability of remaining
     dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
       (1 - dispersal_frac) * diag(nrow(adjacency))
   } else {
-    # create coordinates for the patches/locations 
+    # create coordinates for the patches/locations
     coords <- as.data.frame(100 * matrix(runif(n_patches * 2), ncol = 2))
     colnames(coords) <- c("x","y")
     
-    # dispersal matrix 
+    # dispersal matrix
     dist_matrix <- as.matrix(dist(coords, method = "euclidean"))
     #exponential dispersal kernel
     dispersal_kernel <- exp(-lambda * dist_matrix)
@@ -105,7 +121,7 @@ create_dispersal_matrix <- function(n_patches, lambda, dispersal_frac, adjacency
     # vector moving between patches
     rel_dispersal_matrix <- sweep(dispersal_kernel, 1,
                                   rowSums(dispersal_kernel), FUN = "/")
-    
+
     # normalise these to have the overall probability of dispersing to that patch,
     # and add back the probability of remaining
     dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
@@ -113,8 +129,6 @@ create_dispersal_matrix <- function(n_patches, lambda, dispersal_frac, adjacency
   }
   return(dispersal_matrix)
 }
-
-
 
 
 
