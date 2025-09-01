@@ -6,6 +6,9 @@
 ###########################################################
 
 # ---- R version check ----
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+.libPaths(c("/software/projects/pawsey1163/johiolei/setonix/2025.08/r/4.4.1", .libPaths()))
 
 # R versions for which this project has been tested and is stable
 stable_versions = c("4.4.0", "4.4.1")
@@ -66,9 +69,9 @@ packages = c(
   "parallel",      # Multicore version of lapply
   "rlist",         # List-related helper functions, such as list.remove
   "purrr",         # TODO: Write description
-  "truncnorm",     # TODO: Write description
+  # "truncnorm",     # TODO: Write description
   "parallel",      # Multicore version of lapply
-  "pals",          # Colour palettes
+  # "pals",          # Colour palettes
   "progress")      # Stylish progress bars
 
 # ---- Install and/or load packages with pacman ----
