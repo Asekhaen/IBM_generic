@@ -52,13 +52,24 @@ place_loci_mat <- function(loci, genome.size = 1, var = 1, decay){
 
 # random selection of allele, with linkage
 
+
 which_allele_fn <- function(n_offspring, n_loci, cov_matrix){
   epsilon <- MASS::mvrnorm(n_offspring, rep(0, n_loci), Sigma = cov_matrix)
-  selection_prob <- plogis(epsilon)
+  selection_prob <- epsilon > 0
+  selection_prob[] <- as.numeric(selection_prob)
   matrix(rbinom(n_offspring * n_loci, 1, selection_prob) == 1,
          nrow = n_offspring,
          ncol = n_loci)
 }
+
+
+# which_allele_fn <- function(n_offspring, n_loci, cov_matrix){
+#   epsilon <- MASS::mvrnorm(n_offspring, rep(0, n_loci), Sigma = cov_matrix)
+#   selection_prob <- plogis(epsilon)
+#   matrix(rbinom(n_offspring * n_loci, 1, selection_prob) == 1,
+#          nrow = n_offspring,
+#          ncol = n_loci)
+# }
 
 # alternative  function for computational speed
 
