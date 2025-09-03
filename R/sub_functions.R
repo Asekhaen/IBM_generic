@@ -13,7 +13,6 @@ load_libraries <- function(pack) {
 # Density-dependent reproduction (add a reference here)
 
 
-#
 
 bev_holt <- function(n_pop, dd_rate, fecundity){
   expected_offspring <- fecundity/(1 + dd_rate*n_pop)

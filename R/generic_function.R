@@ -123,9 +123,10 @@ growth <- function(pop_patches,
       # pop <- bind_rows(pop, offspring)
      
       
+      # survival 
       # pop <- pop |>
       #   mutate(
-      #     alive = rbinom(n(), 1, survival_ricker(nrow(pop), carrying_capacity, max_survival, decay_rate)
+      #     alive = rbinom(n(), 1, prob_survival
       #     ) == 1
       #   )
       # pop <- pop[pop$alive,]

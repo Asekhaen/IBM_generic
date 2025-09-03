@@ -21,6 +21,7 @@ packages <- c("ggplot2",
               "purrr",       # uses pmap to loop through different scenarios
               "furrr",       # multisession i.e. distribute work across many cores
               "progressr",
+              "patchwork",
               "data.table")   # shows the progress
 
 
@@ -44,7 +45,7 @@ results <- run_model (n_patches = patches,
            dd_rate = dd_rate,
            decay = decay,
            lambda = lambda,
-           lethal_effect = FALSE,
+           lethal_effect = TRUE,
            complete_sterile = FALSE,
            sim_years = sim_years,
            overlapping = TRUE,
@@ -69,16 +70,25 @@ saveRDS(results, file = "C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\
 
 # # create the different simulation scenarios with unique ids
 # sim_scenarios <- expand.grid(
-#   init_frequency = c(0.05, 0.1, 0.25),
+#   #init_frequency = c(0.05, 0.1, 0.25),
+#   lethal_effect = c(TRUE, FALSE),
+#   complete_sterile = c(TRUE, FALSE),
 #   dispersal_prob = c(0.00001, 0.0001, 0.001)
+#   
 # ) %>%
 #   mutate(
-#     scenario_name = paste0("freq", init_frequency,
+#     scenario_name = paste0(#"freq", init_frequency,
 #                            #"_fec", fecundity,
 #                            #"_loci", n_loci,
+#                            "_lethal", lethal_effect,
+#                            "_sterle", complete_sterile,
 #                            "_disp", dispersal_prob),
 #     sim_id = row_number()
 #   )
+# 
+# 
+# sim_scenarios <- sim_scenarios[c(2,3,4,6,7,8,10,11,12),]
+# 
 # 
 # 
 # # create a storgae folder for simulation results
@@ -92,9 +102,10 @@ saveRDS(results, file = "C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\
 # 
 #   # simulation
 #   sim <- sim_scenarios %>%
-#     pmap(function(init_frequency,
-#                   dispersal_prob,
+#     pmap(function(dispersal_prob,
 #                   scenario_name,
+#                   lethal_effect,
+#                   complete_sterile,
 #                   sim_id) {
 #       sim_out <- run_model(
 #         n_patches = patches,
@@ -123,20 +134,6 @@ saveRDS(results, file = "C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\
 #       file_name
 #     })
 # })
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
