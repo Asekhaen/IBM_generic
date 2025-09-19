@@ -1,20 +1,27 @@
 
 # Parameters
 fecundity <- 5                             # Number of offspring per day per female mosquito
-max_survival <- 1
+#max_survival <- 1
 prob_survival <- 0.75
-decay_rate <- 2
-dd_rate <- 0.0001
-patches <- 10                              # Number of patches
-n_per_patch <- c(40000,0,0,0,0,0,0,0,0,0)  # Initial number of individuals per patch
-sim_years <- 25                            # Number of simulation in days
-carrying_capacity = 40000                  # carrying capacity  
+#decay_rate <- 2
+dd_rate <- 0.004
+patches <- 5                              # Number of patches
+n_per_patch <- c(1000,0,0,0,0)  # Initial number of individuals per patch
+sim_years <- 30                            # Number of simulation in days
+carrying_capacity = 1000                  # carrying capacity  
+establish_threshold <- 0.001 * carrying_capacity # 0.1% of carrying capacity 
+
 
 # dispersal parameters
 lambda <- 0.1
-dispersal_prob <- 0.01
+dispersal_prob <- 0.001
 
 # Genetics: load/drive parameters
 n_loci <- 10
 init_frequency <- 0.25                   
 decay <- 0.5  
+
+
+# sensitivity analysis
+n_samples <- 20
+n_replicates <- 5

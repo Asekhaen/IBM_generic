@@ -40,10 +40,20 @@ growth <- function(pop_patches,
   for (i in seq_along(pop_patches)) {
     pop <- pop_patches[[i]]  
     
+    
+    # survival
+    pop <- pop |>
+      mutate(
+        alive = rbinom(n(), 1, prob_survival
+        ) == 1
+      )
+    pop <- pop[pop$alive,]
+
+    # reproduction  
     n.pop <- nrow(pop)
     
-    # growth 
     if (n.pop > 0){
+      
       
       # exp_fecundity <- fec_dd(n.pop, dd_rate, prob_survival)
       # act_fecundity <- rpois(n.pop, exp_fecundity)
@@ -122,15 +132,7 @@ growth <- function(pop_patches,
       pop <- offspring
       # pop <- bind_rows(pop, offspring)
      
-      
-      # survival 
-      # pop <- pop |>
-      #   mutate(
-      #     alive = rbinom(n(), 1, prob_survival
-      #     ) == 1
-      #   )
-      # pop <- pop[pop$alive,]
-
+  
     }
     # if turned on, this "if" statement simulates lethal effect of for individuals with 
     # homologous deleterious allele
@@ -246,15 +248,13 @@ run_model <- function(n_patches,
       year = year,
       patch = seq_along(pop),
       pop_size = sapply(pop, nrow),
-      patch_occupied = sum(pop_size > 0),
+      patch_occupied = sum(pop_size > establish_threshold),
       unoccupied = length(patch) - patch_occupied,
       occupancy_rate = patch_occupied/length(patch)
     )
-    patch_stats_df <- bind_rows(patch_stats)
   
     
-    
-    
+
     # Track annual overall allele frequency per patch
     
   allele_frequency[[year]] <-  lapply(seq_along(pop), function(patch_id) {
@@ -272,7 +272,6 @@ run_model <- function(n_patches,
       freq       = ifelse(total_allele_overall == 0, 0, deleterious / total_allele_overall)
     )
   })
-  allele_frequency_df <- bind_rows(allele_frequency)
   
   
   # allele frequency per locus per patch
@@ -301,6 +300,14 @@ run_model <- function(n_patches,
     )
   })
   
+  patch_stats_df <- bind_rows(patch_stats)
+  patch_stats_df <- compute_stat(patch_stats_df,establish_threshold)
+  patch_stats_df <- invasion_speed(patch_stats_df)
+  
+  allele_frequency_df <- bind_rows(allele_frequency)
+  allele_freq <- allele_frequency_df |> select(freq)
+  
+  pop_stat <- bind_cols(patch_stats_df, allele_freq)
   allele_freq_per_locus_df <- bind_rows(allele_freq_per_locus)
   
   }
@@ -310,10 +317,10 @@ run_model <- function(n_patches,
   
   # Return the collected data
   results <- list(
-    patch_stats = patch_stats_df,
-    allele_frequency = allele_frequency_df,
+    pop_stats = pop_stat,
     allele_freq_per_locus = allele_freq_per_locus_df
   )
+  
 }
 
 

@@ -11,26 +11,21 @@ load_libraries <- function(pack) {
 
 
 # Density-dependent reproduction (add a reference here)
-
-
-
 bev_holt <- function(n_pop, dd_rate, fecundity){
   expected_offspring <- fecundity/(1 + dd_rate*n_pop)
   return(expected_offspring)
 }
 
-
 # bev_holt <- function(n_pop, fecundity, carrying_capacity) {
 #   return(fecundity / (1 + (fecundity - 1) / carrying_capacity * n_pop))
 # }
-# 
-# 
+ 
 # survival_ricker <- function(n_pop, carrying_capacity, max_survival, decay_rate){
 #   surv <- max_survival * exp(-decay_rate * (n_pop/carrying_capacity))
 #   return(surv) 
 # }
-# 
-# 
+
+
 # Density dependent fecundity function
 fec_dd <- function(n_pop, dd_rate, prob_survival, c = 0.06){
   fecundity <- (1-prob_survival)/c
@@ -50,8 +45,6 @@ place_loci_mat <- function(loci, genome.size = 1, var = 1, decay){
 }
 
 # random selection of allele, with linkage
-
-
 which_allele_fn <- function(n_offspring, n_loci, cov_matrix){
   epsilon <- MASS::mvrnorm(n_offspring, rep(0, n_loci), Sigma = cov_matrix)
   selection_prob <- epsilon > 0
@@ -71,7 +64,6 @@ which_allele_fn <- function(n_offspring, n_loci, cov_matrix){
 # }
 
 # alternative  function for computational speed
-
 # which_allele_fn <- function(n_ind, n_loci, loci_cov_matrix) {
 #   epsilon <- MASS::mvrnorm(n = n_ind,
 #                            mu = rep(0, n_loci),
@@ -141,7 +133,50 @@ create_dispersal_matrix <- function(n_patches, lambda, dispersal_frac, adjacency
 }
 
 
-
-
 # plot(coords, cex = 4)
 # text(coords, labels = 1:patches)
+
+
+# function to compute some statistics
+compute_stat <- function(data, establish_thresh) {
+  data <- data |>
+    group_by(patch) |>
+    mutate(first_arrival = ifelse(any(pop_size > 0),
+                                  min(year[pop_size > 0]),
+                                  0)) |> ungroup()
+  data <- data |>
+    group_by(patch) |>
+    mutate(establish_pop = ifelse(any(pop_size > establish_thresh),
+                                  min(year[pop_size > establish_thresh]),
+                                  0)) |> ungroup()
+  data <- data |>
+    group_by(patch) |>
+    mutate(log_size = log(pop_size + 1)) |> ungroup()
+  
+  data <- data |>
+    group_by(patch) |>
+    mutate(growth_rate = ifelse(!is.na(lag(pop_size)) & lag(pop_size) > 0,
+                                (pop_size/lag(pop_size)) -1,
+                                0)) |>    ungroup()
+  data <- data |>
+    group_by(patch) |>
+    mutate(log_rate = ifelse(!is.na(lag(pop_size)) & lag(pop_size) > 0,
+                                log(pop_size/lag(pop_size)),
+                                0)) |>    ungroup()
+  data <- data |>
+    group_by(patch) |>
+    mutate(col_rate = ifelse(!is.na(lag(patch_occupied)) & lag(pop_size) > 0,
+                             patch_occupied - lag(patch_occupied)/ unoccupied, 0)) |>   ungroup()
+  return(data)
+}
+
+
+# function for invasion speed 
+invasion_speed <- function(data) {
+  occupied = data$patch_occupied
+  time = data$year
+  # fit model
+  model <- lm(occupied ~ time)
+  data$speed <- coef(model)[2]
+  return(data)
+}
