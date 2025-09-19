@@ -202,9 +202,6 @@ summary(brt_speed)
  
 
 
-
-
-
 # results_list <- list()
 # 
 # for (i in 1:nrow(param_set)) {
