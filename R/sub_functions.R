@@ -138,17 +138,18 @@ create_dispersal_matrix <- function(n_patches, lambda, dispersal_frac, adjacency
 
 
 # function to compute some statistics
-compute_stat <- function(data, establish_thresh) {
+compute_stat <- function(data, establish_thresh, carrying_capacity) {
   data <- data |>
     group_by(patch) |>
-    mutate(first_arrival = ifelse(any(pop_size > 0),
+    mutate(arrival = ifelse(any(pop_size > 0),
                                   min(year[pop_size > 0]),
                                   0)) |> ungroup()
   data <- data |>
     group_by(patch) |>
-    mutate(establish_pop = ifelse(any(pop_size > establish_thresh),
-                                  min(year[pop_size > establish_thresh]),
-                                  0)) |> ungroup()
+    mutate(time_to_k = ifelse((pop_size > 0),
+                           min(year[pop_size >= (0.8 * carrying_capacity)]),
+                           0)) |> ungroup()
+  
   data <- data |>
     group_by(patch) |>
     mutate(log_size = log(pop_size + 1)) |> ungroup()
@@ -163,10 +164,6 @@ compute_stat <- function(data, establish_thresh) {
     mutate(log_rate = ifelse(!is.na(lag(pop_size)) & lag(pop_size) > 0,
                                 log(pop_size/lag(pop_size)),
                                 0)) |>    ungroup()
-  data <- data |>
-    group_by(patch) |>
-    mutate(col_rate = ifelse(!is.na(lag(patch_occupied)) & lag(pop_size) > 0,
-                             patch_occupied - lag(patch_occupied)/ unoccupied, 0)) |>   ungroup()
   return(data)
 }
 
