@@ -47,8 +47,6 @@ param_ranges <- data.frame(
 # 2. Generate and scale LHS Parameter Sets ---
 # -----------------------------
 # sensitivity analysis
-n_samples <- 25
-#n_replicates <- 5
 
 
 lhs_sample <- randomLHS(n_samples, ncol(param_ranges))
