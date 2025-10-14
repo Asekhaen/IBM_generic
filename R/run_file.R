@@ -8,122 +8,111 @@
 
 #set.seed(230)
 
-# Source functions and parameters 
-source("R/sub_functions.R")
-source("R/generic_function.R")
-source("R/parameters_generic.R")
-
-packages <- c("ggplot2", 
-              "dplyr",
-              "tibble",
-              "tidyr", 
-              "readr", 
-              "purrr",       # uses pmap to loop through different scenarios
-              "furrr",       # multisession i.e. distribute work across many cores
-              "progressr",
-              "patchwork",
-              "sensitivity",
-              "rsm",
-              "randomForest",
-              "ranger",
-              "data.table")   # shows the progress
-
-
-load_libraries(packages)
-
 
 ###########################################
 #            
 #            RUN SINGLE SIMULATION      
 #                   
 ###########################################
-
-# results <- run_model (
-#   n_patches = patches,
-#   pop_patches,
-#   n_per_patch = n_per_patch,
-#   n_loci = n_loci,
-#   init_frequency = init_frequency,
-#   fecundity = fecundity,
-#   carrying_capacity = carrying_capacity,
-#   prob_survival = prob_survival,
-#   dd_rate = dd_rate,
-#   decay = decay,
-#   lambda = lambda,
-#   lethal_effect = FALSE,
-#   complete_sterile = TRUE,
-#   sim_years = sim_years,
-#   adjacency_matrix = TRUE,
-#   dispersal_frac = dispersal_prob
-# )
+# Set working directory to sourced file
 
 
+source("R/dependencies.R")
 
-# running replicates 
-
-all_patch_stats <- list()
-all_allele_frequency <- list()
-
-for (rep in 1:n_replicates) {
 results <- run_model (
-    n_patches = patches,
-    pop_patches,
-    n_per_patch = n_per_patch,
-    n_loci = n_loci,
-    init_frequency = init_frequency,
-    fecundity = fecundity,
-    carrying_capacity = carrying_capacity,
-    prob_survival = prob_survival,
-    dd_rate = dd_rate,
-    decay = decay,
-    lambda = lambda,
-    lethal_effect = FALSE,
-    complete_sterile = FALSE,
-    sim_years = sim_years,
-    adjacency_matrix = TRUE,
-    dispersal_frac = dispersal_prob
-  )
-
-# Append to collectors
-all_patch_stats[[rep]] <- results$pop_stats
-all_allele_frequency [[rep]] <- results$allele_freq_per_locus
-}
-
-
-# append all replicates
-
-# pop size 
-all_patch_stats_df <- bind_rows(
-  lapply(seq_along(all_patch_stats), function(rep) {
-    df <- all_patch_stats[[rep]]
-    df$replicate <- rep   # add replicate column
-    df
-  })
+  n_patches = patches,
+  pop_patches,
+  n_per_patch = n_per_patch,
+  n_loci = n_loci,
+  init_frequency = init_frequency,
+  fecundity = fecundity,
+  carrying_capacity = carrying_capacity,
+  prob_survival = prob_survival,
+  dd_rate = dd_rate,
+  decay = decay,
+  lambda = lambda,
+  lethal_effect = FALSE,
+  complete_sterile = TRUE,
+  sim_years = sim_years,
+  adjacency_matrix = TRUE,
+  dispersal_frac = dispersal_prob
 )
 
-#allele frequence per locus
-all_allele_frequency_df <- dplyr::bind_rows(
-  lapply(seq_along(all_allele_frequency), function(rep) {
-    df <- as.data.frame(all_allele_frequency[[rep]])
-    df$replicate <- rep
-    df
-  })
-)
 
-saveRDS(all_patch_stats_df, file = "C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\Generic_IBM_Proj\\IBM_generic\\output\\100_rep_normal.rds")
-saveRDS(all_allele_frequency_df, file = "C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\Generic_IBM_Proj\\IBM_generic\\output\\100_normal_allele.rds")
-
-
-
-
-
-
-
-
+#current_path <- rstudioapi::getActiveDocumentContext()$path
+#setwd(dirname(current_path))
 
 if (!dir.exists("output")) dir.create("output")
-saveRDS(results, file = "C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\Generic_IBM_Proj\\IBM_generic\\output\\results.rds")
-output1 <- (readRDS("C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\Generic_IBM_Proj\\IBM_generic\\output\\results.rds"))
+
+# Save the results object inside the output folder
+saveRDS(results, file = file.path("output", "results.rds"))
+
+
+# # running replicates 
+# 
+# all_patch_stats <- list()
+# all_allele_frequency <- list()
+# 
+# for (rep in 1:n_replicates) {
+# results <- run_model (
+#     n_patches = patches,
+#     pop_patches,
+#     n_per_patch = n_per_patch,
+#     n_loci = n_loci,
+#     init_frequency = init_frequency,
+#     fecundity = fecundity,
+#     carrying_capacity = carrying_capacity,
+#     prob_survival = prob_survival,
+#     dd_rate = dd_rate,
+#     decay = decay,
+#     lambda = lambda,
+#     lethal_effect = FALSE,
+#     complete_sterile = FALSE,
+#     sim_years = sim_years,
+#     adjacency_matrix = TRUE,
+#     dispersal_frac = dispersal_prob
+#   )
+# 
+# # Append to collectors
+# all_patch_stats[[rep]] <- results$pop_stats
+# all_allele_frequency [[rep]] <- results$allele_freq_per_locus
+# }
+# 
+# 
+# # append all replicates
+# 
+# # pop size 
+# all_patch_stats_df <- bind_rows(
+#   lapply(seq_along(all_patch_stats), function(rep) {
+#     df <- all_patch_stats[[rep]]
+#     df$replicate <- rep   # add replicate column
+#     df
+#   })
+# )
+# 
+# #allele frequence per locus
+# all_allele_frequency_df <- dplyr::bind_rows(
+#   lapply(seq_along(all_allele_frequency), function(rep) {
+#     df <- as.data.frame(all_allele_frequency[[rep]])
+#     df$replicate <- rep
+#     df
+#   })
+# )
+# 
+# saveRDS(all_patch_stats_df, file = "C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\Generic_IBM_Proj\\IBM_generic\\output\\100_rep_normal.rds")
+# saveRDS(all_allele_frequency_df, file = "C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\Generic_IBM_Proj\\IBM_generic\\output\\100_normal_allele.rds")
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# if (!dir.exists("output")) dir.create("output")
+# saveRDS(results, file = "C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\Generic_IBM_Proj\\IBM_generic\\output\\results.rds")
+# output1 <- (readRDS("C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\Generic_IBM_Proj\\IBM_generic\\output\\results.rds"))
 
 
   

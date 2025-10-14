@@ -169,7 +169,8 @@ growth <- function(pop_patches,
 }
 
 
-dispersal <- function(pop, n_patches, lambda, dispersal_frac, adjacency_matrix, check = FALSE) {
+dispersal <- function(pop, n_patches, lambda, dispersal_frac, adjacency_matrix, check = TRUE) {
+ #browser()
   
   # create a dispersal matrix using the created function 
   disp_matrix <- create_dispersal_matrix(n_patches, lambda, dispersal_frac, adjacency_matrix)
@@ -179,26 +180,29 @@ dispersal <- function(pop, n_patches, lambda, dispersal_frac, adjacency_matrix, 
   # get new patch indices for all individuals
   for (i in seq_along(pop)) {
     patch <- pop[[i]]
-    n_patch <- nrow(patch)
+    n_individuals<- nrow(patch)
     
-    if (n_patch == 0) next  # skip patch if no individuals
+    if (n_individuals == 0) next  # skip patch if no individuals
     
-    dispersal_probs <- disp_matrix[i, ]
-    # Sample new patch indices for all individuals in this patch
-    new_pop_indices <- sample(1:length(dispersal_probs), size = n_patch, replace = TRUE, prob = dispersal_probs)
-    # Store original row indices and their assigned new patch
-    patch_indices[[i]] <- tibble(ind_within_pop_indices = seq_len(n_patch),
-                                 new_pop_indices = new_pop_indices)
+    dispersal_probs <- disp_matrix[i, ]   #dispersal probability for each patch based on the kernel matrix 
+    
+    # Desitnation patch for each individuals in this patch
+    destination_patch <- sample(1:length(dispersal_probs), size = n_individuals, replace = TRUE, prob = dispersal_probs)
+
+    # dataframe holding individuals and their destination patch
+    patch_indices[[i]] <- tibble(ind_ID = seq_len(n_individuals),
+                                 destination_patch = destination_patch)
   }
   
+  #browser()
   # Move individuals to new patches
   for (i in seq_along(pop)) {
     patch <- pop[[i]]
-    dispersers <- patch[patch_indices[[i]]$ind_within_pop_indices, ]
+    dispersers <- patch[patch_indices[[i]]$ind_ID, ]
     
-    for (jj in 1:length(pop)) {
-      ind_jj <- dispersers[patch_indices[[i]]$new_pop_indices == jj, ]
-      dispersed_pop[[jj]] <- bind_rows(dispersed_pop[[jj]], ind_jj)
+    for (destination in seq_along(pop)) {
+      ind_for_this_destination <- dispersers[patch_indices[[i]]$destination_patch == destination, ]
+      dispersed_pop[[destination]] <- bind_rows(dispersed_pop[[destination]], ind_for_this_destination)
     }
   }
   

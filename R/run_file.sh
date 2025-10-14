@@ -14,7 +14,7 @@
 r_version="4.4.1"
 
 # module load gcc/12.2.0  # NOTE: This is pre-loaded on Setonix
-module load r/${r_version}
+module load r/4.4.1
 
 # Call main R launch script
 Rscript run_file.R
