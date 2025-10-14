@@ -17,7 +17,7 @@
 # Set working directory to sourced file
 
 
-source("R/dependencies.R")
+source("dependencies.R")
 
 results <- run_model (
   n_patches = patches,
@@ -38,9 +38,6 @@ results <- run_model (
   dispersal_frac = dispersal_prob
 )
 
-
-#current_path <- rstudioapi::getActiveDocumentContext()$path
-#setwd(dirname(current_path))
 
 if (!dir.exists("output")) dir.create("output")
 

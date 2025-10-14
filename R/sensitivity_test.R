@@ -9,9 +9,9 @@
 #set.seed(230)
 
 # Source functions and parameters 
-source("R/sub_functions.R")
-source("R/generic_function.R")
-source("R/parameters_generic.R")
+source("sub_functions.R")
+source("generic_function.R")
+source("parameters_generic.R")
 
 packages <- c("ggplot2", 
               "dplyr",
