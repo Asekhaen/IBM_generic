@@ -64,7 +64,7 @@ results <- run_model (
     decay = decay,
     lambda = lambda,
     lethal_effect = FALSE,
-    complete_sterile = FALSE,
+    complete_sterile = TRUE,
     sim_years = sim_years,
     adjacency_matrix = TRUE,
     dispersal_frac = dispersal_prob
@@ -99,8 +99,8 @@ all_allele_frequency_df <- dplyr::bind_rows(
 
 if (!dir.exists("output")) dir.create("output")
 
-saveRDS(all_patch_stats_df, file = file.path("output", "results_patch.rds"))
-saveRDS(all_allele_frequency_df, file = file.path("output", "results_freq.rds"))
+saveRDS(all_patch_stats_df, file = file.path("output", "results_load_patch.rds"))
+saveRDS(all_allele_frequency_df, file = file.path("output", "results_load_freq.rds"))
 
 
 
