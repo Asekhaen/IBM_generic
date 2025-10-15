@@ -6,7 +6,7 @@
 #               PARAMETERS                #
 ###########################################
 
-#set.seed(230)
+set.seed(230)
 
 
 ###########################################
@@ -19,90 +19,90 @@
 
 source("dependencies.R")
 
-# results <- run_model (
-#   n_patches = patches,
-#   pop_patches,
-#   n_per_patch = n_per_patch,
-#   n_loci = n_loci,
-#   init_frequency = init_frequency,
-#   fecundity = fecundity,
-#   carrying_capacity = carrying_capacity,
-#   prob_survival = prob_survival,
-#   dd_rate = dd_rate,
-#   decay = decay,
-#   lambda = lambda,
-#   lethal_effect = FALSE,
-#   complete_sterile = TRUE,
-#   sim_years = sim_years,
-#   adjacency_matrix = TRUE,
-#   dispersal_frac = dispersal_prob
-# )
-# 
-# 
-# if (!dir.exists("output")) dir.create("output")
-# 
-# # Save the results object inside the output folder
-# saveRDS(results, file = file.path("output", "results.rds"))
-
-
-# running replicates
-
-all_patch_stats <- list()
-all_allele_frequency <- list()
-
-for (rep in 1:n_replicates) {
 results <- run_model (
-    n_patches = patches,
-    pop_patches,
-    n_per_patch = n_per_patch,
-    n_loci = n_loci,
-    init_frequency = init_frequency,
-    fecundity = fecundity,
-    carrying_capacity = carrying_capacity,
-    prob_survival = prob_survival,
-    dd_rate = dd_rate,
-    decay = decay,
-    lambda = lambda,
-    lethal_effect = FALSE,
-    complete_sterile = TRUE,
-    sim_years = sim_years,
-    adjacency_matrix = TRUE,
-    dispersal_frac = dispersal_prob
-  )
-
-# Append to collectors
-all_patch_stats[[rep]] <- results$pop_stats
-all_allele_frequency [[rep]] <- results$allele_freq_per_locus
-}
-
-
-# append all replicates
-
-# pop size
-all_patch_stats_df <- bind_rows(
-  lapply(seq_along(all_patch_stats), function(rep) {
-    df <- all_patch_stats[[rep]]
-    df$replicate <- rep   # add replicate column
-    df
-  })
-)
-
-#allele frequence per locus
-all_allele_frequency_df <- dplyr::bind_rows(
-  lapply(seq_along(all_allele_frequency), function(rep) {
-    df <- as.data.frame(all_allele_frequency[[rep]])
-    df$replicate <- rep
-    df
-  })
+  n_patches = patches,
+  pop_patches,
+  n_per_patch = n_per_patch,
+  n_loci = n_loci,
+  init_frequency = init_frequency,
+  fecundity = fecundity,
+  carrying_capacity = carrying_capacity,
+  prob_survival = prob_survival,
+  dd_rate = dd_rate,
+  decay = decay,
+  lambda = lambda,
+  lethal_effect = FALSE,
+  complete_sterile = TRUE,
+  sim_years = sim_years,
+  adjacency_matrix = TRUE,
+  dispersal_frac = dispersal_prob
 )
 
 
 if (!dir.exists("output")) dir.create("output")
 
-saveRDS(all_patch_stats_df, file = file.path("output", "results_load_patch.rds"))
-saveRDS(all_allele_frequency_df, file = file.path("output", "results_load_freq.rds"))
+# Save the results object inside the output folder
+saveRDS(results, file = file.path("output", "results.rds"))
 
 
+# # running simulation with replicates
+# 
+# all_patch_stats <- list()
+# all_allele_frequency <- list()
+# 
+# for (rep in 1:n_replicates) {
+# results <- run_model (
+#     n_patches = patches,
+#     pop_patches,
+#     n_per_patch = n_per_patch,
+#     n_loci = n_loci,
+#     init_frequency = init_frequency,
+#     fecundity = fecundity,
+#     carrying_capacity = carrying_capacity,
+#     prob_survival = prob_survival,
+#     dd_rate = dd_rate,
+#     decay = decay,
+#     lambda = lambda,
+#     lethal_effect = FALSE,
+#     complete_sterile = TRUE,
+#     sim_years = sim_years,
+#     adjacency_matrix = TRUE,
+#     dispersal_frac = dispersal_prob
+#   )
+# 
+# # Append to collectors
+# all_patch_stats[[rep]] <- results$pop_stats
+# all_allele_frequency [[rep]] <- results$allele_freq_per_locus
+# }
+# 
+# 
+# # append all replicates
+# 
+# # pop size
+# all_patch_stats_df <- bind_rows(
+#   lapply(seq_along(all_patch_stats), function(rep) {
+#     df <- all_patch_stats[[rep]]
+#     df$replicate <- rep   # add replicate column
+#     df
+#   })
+# )
+# 
+# #allele frequence per locus
+# all_allele_frequency_df <- dplyr::bind_rows(
+#   lapply(seq_along(all_allele_frequency), function(rep) {
+#     df <- as.data.frame(all_allele_frequency[[rep]])
+#     df$replicate <- rep
+#     df
+#   })
+# )
+# 
+# 
+# if (!dir.exists("output")) dir.create("output")
+# 
+# saveRDS(all_patch_stats_df, file = file.path("output", "results_load_patch.rds"))
+# saveRDS(all_allele_frequency_df, file = file.path("output", "results_load_freq.rds"))
+# 
+# 
 
 
 # 

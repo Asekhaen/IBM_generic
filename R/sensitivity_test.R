@@ -195,7 +195,7 @@ plot(pred_speed ~ dispersal_prob, data = pred_df, type = "l")
 
 
 
-# use LHS samples (without emulator) to get marginal effect plot
+# use LHS samples (without emulator) to get marginal effect plot   (From Nick G.)
 
 load %>%
   # filter(
@@ -224,33 +224,6 @@ ggplot(all_patch_stats, aes(x = year, y = pop_size, color = factor(patch))) +
     color = "Patch"
   ) +
   theme_minimal()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -360,7 +333,7 @@ ref_emul <- randomForest(
 # importance(ref_emul)
 
 # -----------------------------
-# 2. Generate paramters with LHS Parameter Sets ---
+# 2. Generate parameters with LHS Parameter Sets ---
 # -----------------------------
 
 N <- 1000
@@ -475,7 +448,6 @@ ggplot(sob_long, aes(x = reorder(parameter, value), y = value, fill = index)) +
 
 
 
-
 # Example: marginal relationship init_frequency vs mean_pop
 ggplot(clean_data, aes(x = growth, y = mean_load)) +
   geom_point(alpha = 0.4, size = 1) +
@@ -492,12 +464,6 @@ ggplot(clean_data, aes(x = speed, y = mean_load)) +
   theme_minimal() +
   labs(x = "Invasion speed", y = "genetic load",
        title = "Relationship between fecundity and speed")
-
-
-
-
-
-
 
 
 # Example: marginal relationship init_frequency vs mean_pop
