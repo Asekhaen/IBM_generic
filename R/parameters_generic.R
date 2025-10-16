@@ -19,7 +19,8 @@ dispersal_prob <- 0.002
 
 # Genetics: load/drive parameters
 n_loci <- 1000                              # try varying 150 to 200
-init_frequency <- 0.01                   
+init_frequency <- 0.03                   
 decay <- 0.5  
 
-n_replicates <- 30
+n_replicates <- 50
+n_samples <- 50
