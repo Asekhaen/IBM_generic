@@ -156,14 +156,13 @@ compute_stat <- function(data, establish_thresh, carrying_capacity) {
   
   data <- data |>
     group_by(patch) |>
-    mutate(growth_rate = ifelse(!is.na(lag(pop_size)) & lag(pop_size) > 0,
-                                (pop_size/lag(pop_size)) -1,
-                                0)) |>    ungroup()
-  data <- data |>
-    group_by(patch) |>
-    mutate(log_rate = ifelse(!is.na(lag(pop_size)) & lag(pop_size) > 0,
-                                log(pop_size/lag(pop_size)),
-                                0)) |>    ungroup()
+    mutate(growth_rate =  ifelse(!is.na(lead(pop_size)) & pop_size > 0,
+                                 (lead(pop_size)-pop_size)/pop_size, 0 )) |> ungroup()
+  # data <- data |>
+  #   group_by(patch) |>
+  #   mutate(log_rate = ifelse(!is.na(lag(pop_size)) & lag(pop_size) > 0,
+  #                               log(pop_size/lag(pop_size)),
+  #                               0)) |>    ungroup()
   return(data)
 }
 

@@ -6,7 +6,7 @@
 #               PARAMETERS                #
 ###########################################
 
-set.seed(230)
+#set.seed(230)
 
 
 ###########################################
@@ -32,11 +32,12 @@ results <- run_model (
   decay = decay,
   lambda = lambda,
   lethal_effect = FALSE,
-  complete_sterile = TRUE,
+  complete_sterile = FALSE,
   sim_years = sim_years,
   adjacency_matrix = TRUE,
   dispersal_frac = dispersal_prob
 )
+
 
 
 if (!dir.exists("output")) dir.create("output")
