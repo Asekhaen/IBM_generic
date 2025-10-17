@@ -11,15 +11,17 @@ load_libraries <- function(pack) {
 
 
 # Density-dependent reproduction (add a reference here)
-bev_holt <- function(n_pop, dd_rate, fecundity){
-  expected_offspring <- fecundity/(1 + dd_rate*n_pop)
-  return(expected_offspring)
-}
 
-# bev_holt <- function(n_pop, fecundity, carrying_capacity) {
-#   return(fecundity / (1 + (fecundity - 1) / carrying_capacity * n_pop))
-# }
+
+bev_holt <- function(n_pop, fecundity, carrying_capacity) {
+  return(fecundity / (1 + (fecundity - 1) / carrying_capacity * n_pop))
+}
  
+# bev_holt <- function(n_pop, dd_rate, fecundity){
+#   expected_offspring <- fecundity/(1 + dd_rate*n_pop)
+#   return(expected_offspring)
+# }
+
 # survival_ricker <- function(n_pop, carrying_capacity, max_survival, decay_rate){
 #   surv <- max_survival * exp(-decay_rate * (n_pop/carrying_capacity))
 #   return(surv) 
@@ -27,11 +29,11 @@ bev_holt <- function(n_pop, dd_rate, fecundity){
 
 
 # Density dependent fecundity function
-fec_dd <- function(n_pop, dd_rate, prob_survival, c = 0.06){
-  fecundity <- (1-prob_survival)/c
-  expected_offspring <- fecundity*exp(-dd_rate*n_pop)
-  return(expected_offspring)
-}
+# fec_dd <- function(n_pop, dd_rate, prob_survival, c = 0.06){
+#   fecundity <- (1-prob_survival)/c
+#   expected_offspring <- fecundity*exp(-dd_rate*n_pop)
+#   return(expected_offspring)
+# }
 
 
 # Loci selection matrix: function to place loci at random on the genome (of size = 1)

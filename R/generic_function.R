@@ -52,9 +52,11 @@ growth <- function(pop_patches,
       # exp_fecundity <- fec_dd(n.pop, dd_rate, prob_survival)
       # act_fecundity <- rpois(n.pop, exp_fecundity)
 
-      exp_fecundity <- bev_holt(n.pop, dd_rate, fecundity)
+      # exp_fecundity <- bev_holt(n.pop, dd_rate, fecundity)
+      # act_fecundity <- rpois(n.pop, exp_fecundity)
+
+      exp_fecundity <- bev_holt(n.pop, fecundity, carrying_capacity)
       act_fecundity <- rpois(n.pop, exp_fecundity)
-      
 
       selected_mate_idx <- sample(n.pop, n.pop, replace = TRUE)
       selected_mate <- pop[selected_mate_idx,]
