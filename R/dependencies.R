@@ -44,6 +44,7 @@ packages <- c("ggplot2",
               "readr", 
               "purrr",       # uses pmap to loop through different scenarios
               "lhs",
+              "doParallel",
               #"furrr",       # multisession i.e. distribute work across many cores
               #"progressr",
               #"patchwork",

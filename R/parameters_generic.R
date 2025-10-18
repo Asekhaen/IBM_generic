@@ -1,6 +1,6 @@
 
 # Parameters
-fecundity <- 2                             # Number of offspring per day per female mosquito
+fecundity <- 3                             # Number of offspring per day per female mosquito
 #max_survival <- 1
 prob_survival <- 0.75
 decay_rate <- 2
@@ -19,12 +19,12 @@ lambda <- 0.1
 dispersal_prob <- 0.002
 
 # Genetics: load/drive parameters
-n_loci <- 200                              # try varying 150 to 200
-init_frequency <- 0.03                   
+n_loci <- 1000                              # try varying 150 to 200
+init_frequency <- 0.01                   
 decay <- 0.5  
 
-n_replicates <- 50
-n_samples <- 1000
+n_replicates <- 25
+n_samples <- 500
 
 
 
