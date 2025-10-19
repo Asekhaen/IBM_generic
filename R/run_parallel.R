@@ -9,7 +9,8 @@ source("dependencies.R")
 # -----------------------------
 # 1. Read environment variable from SLURM
 # -----------------------------
-task_id <- as.numeric(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
+args <- commandArgs(trailingOnly = TRUE)
+task_id <- ifelse(length(args) > 0, as.numeric(args[1]), 1)
 cat("Running task ID:", task_id, "\n")
 
 # -----------------------------
@@ -40,14 +41,15 @@ param_set <- data.frame(
 # Get parameter set for this SLURM job
 params <- param_set[task_id, ]
 
-cat("Running scenario:", "scenario", params$scenario, "\n")
-
 # -----------------------------
 # 4. Parallel backend setup (for replicates)
 # -----------------------------
-n_cores <- parallel::detectCores() - 1
+
+n_cores <- as.numeric(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
 cl <- makeCluster(n_cores)
 registerDoParallel(cl)
+
+
 
 # -----------------------------
 # 5. Run model replicates in parallel
