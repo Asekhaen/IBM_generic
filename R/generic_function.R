@@ -271,9 +271,9 @@ run_model <- function(n_patches,
                      adjacency_matrix, 
                      check = FALSE)
 
-    if (nrow(pop[[n_patches]]) > carrying_capacity/2) {
-      break
-    }
+    #if (nrow(pop[[n_patches]]) > carrying_capacity/2) {
+    #  break
+    #}
     
     # Track annual population sizes per patch, occupancy rates, etc.
 
