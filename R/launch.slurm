@@ -5,8 +5,8 @@
 #SBATCH --job-name=test_IBM       # Name of the job
 #SBATCH --nodes=1
 #SBATCH --ntasks=1                # Number of tasks (use 1 for a serial R job)
-#SBATCH --cpus-per-task=4         # Number of CPUs per task
-#SBATCH --time=10:00:00           # Maximum wall-clock time (HH:MM:SS)
+#SBATCH --cpus-per-task=64         # Number of CPUs per task
+#SBATCH --time=15:00:00           # Maximum wall-clock time (HH:MM:SS)
 #SBATCH --mem-per-cpu=2G          # Memory requested per node
 #SBATCH --output=r_job_%j.out     # Standard output file
 #SBATCH --error=r_job_%j.err      # Standard error file

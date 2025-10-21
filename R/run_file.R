@@ -109,9 +109,6 @@ source("dependencies.R")
 
 
 # Running with different dispersal rate 
-# 
-#
-
 
 
 # -----------------------------
@@ -120,7 +117,7 @@ source("dependencies.R")
 param_ranges <- data.frame(
   # init_frequency = c(0.01, 0.30),
   # n_loci          = c(50, 200),
-  dispersal_prob  = c(0.0001, 0.05)
+  dispersal_prob  = c(0.0009, 0.05)
 )
 
 

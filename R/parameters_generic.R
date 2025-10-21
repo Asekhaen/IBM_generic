@@ -9,7 +9,7 @@ patches <- 2                              # Number of patches
 carrying_capacity = (fecundity - 1)/dd_rate                  # carrying capacity  
 n_per_patch <- c(carrying_capacity,0)             # Initial number of individuals per patch for two patch simulation
 #n_per_patch <- c(carrying_capacity,0,0,0,0)             # Initial number of individuals per patch
-sim_years <- 150                          # Number of simulation in days
+sim_years <- 100                          # Number of simulation in days
 establish_threshold <- round(0.005 * carrying_capacity) # 0.5% of carrying capacity 
 
 
@@ -22,5 +22,5 @@ n_loci <- 1000                              # try varying 150 to 200
 init_frequency <- 0.03                   
 decay <- 0.5  
 
-n_replicates <- 50
-n_samples <- 50
+n_replicates <- 30
+n_samples <- 20
