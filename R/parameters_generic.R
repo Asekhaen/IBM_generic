@@ -23,7 +23,7 @@ n_loci <- 1000                              # try varying 150 to 200
 init_frequency <- 0.007                   
 decay <- 0.5  
 
-n_replicates <- 25
+n_replicates <- 100
 n_samples <- 500
 
 
