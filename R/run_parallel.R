@@ -17,7 +17,7 @@ cat("Running task ID:", task_id, "\n")
 # 2. Parameter ranges
 # -----------------------------
 param_ranges <- data.frame(
-  init_frequency = c(0.01, 0.25),
+  init_frequency = c(0.001, 0.25),
   n_loci         = c(100, 1000),
   fecundity      = c(2, 10),
   dispersal_prob = c(0.001, 0.05)
