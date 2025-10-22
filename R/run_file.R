@@ -64,32 +64,32 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
       fecundity        = fecundity,
       carrying_capacity= carrying_capacity,
       lethal_effect    = FALSE,
-      complete_sterile = FALSE,
+      complete_sterile = TRUE,
       sim_years        = sim_years,
       dd_rate          = dd_rate,
       lambda           = lambda,
       adjacency_matrix = TRUE,
-      dispersal_frac   = param_set$dispersal_prob[i],
+      dispersal_frac   = params$dispersal_prob,
       decay            = decay
     )
     
     # --- Add scenario + replicate details ---
     patch_stats <- scenario_output$pop_stats |>
       mutate(
-        #scenario       = param_set$scenario[i],
+        scenario       = params$scenario,
         replicate      = rep,
-        #init_frequency = param_set$init_frequency[i],
-        #n_loci         = param_set$n_loci[i],
-        dispersal_prob = param_set$dispersal_prob[i]
+        #init_frequency = params$init_frequency,
+        #n_loci         = params$n_loci[i],
+        dispersal_prob = params$dispersal_prob
       )
     
     allele_stats <- scenario_output$allele_freq_per_locus |>
       mutate(
-        #scenario       = param_set$scenario[i],
+        scenario       = params$scenario,
         replicate      = rep,
-        #init_frequency = param_set$init_frequency[i],
-        #n_loci         = param_set$n_loci[i],
-        dispersal_prob = param_set$dispersal_prob[i]
+        #init_frequency = params$init_frequency,
+        #n_loci         = params$n_loci,
+        dispersal_prob = params$dispersal_prob
       )
     
     list(patch = patch_stats, allele = allele_stats)
