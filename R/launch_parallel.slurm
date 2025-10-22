@@ -15,14 +15,13 @@
 #SBATCH --mail-user=john.ohiolei@postgrad.curtin.edu.au
 #SBATCH --mail-type=ALL,TIME_LIMIT_90
 
-# These are your executable commands, which you must leave unhashed.
-# Load the desired R module, after confirming the version exists on Setonix.
+# Available R module, this version should exists on Setonix.
 module load r/4.4.1
 
-# Navigate to the directory where your scripts are located
+# directory hosting my scripts 
 cd $MYSOFTWARE/IBM_generic/R
 
-# Run R script for each array task
+# This execute the R script using Rscript
 Rscript run_parallel.R
 
 
