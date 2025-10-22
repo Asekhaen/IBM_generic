@@ -106,9 +106,13 @@ source("dependencies.R")
 # 
 
 
-
-
 # Running with different dispersal rate 
+
+# Detect number of CPUs from SLURM
+args <- commandArgs(trailingOnly = TRUE)
+task_id <- ifelse(length(args) > 0, as.numeric(args[1]), 1)
+cat("Running task ID:", task_id, "\n")
+
 
 
 # -----------------------------
@@ -121,10 +125,10 @@ param_ranges <- data.frame(
 )
 
 
+
 # -----------------------------
 # 2. Generate and scale LHS Parameter Sets ---
 # -----------------------------
-# sensitivity analysis
 
 
 lhs_sample <- randomLHS(n_samples, ncol(param_ranges))
@@ -136,13 +140,24 @@ param_set <- data.frame(
 )
 
 
-all_patch_stats <- list()
-all_allele_frequency <- list()
+# Get parameter set for this SLURM job
+params <- param_set[task_id, ]
 
-for (i in 1:nrow(param_set)) {
-  cat("Running sample", i, "/", n_samples, "\n")
-  for (rep in 1:n_replicates) {
-    
+
+# -----------------------------
+# 4. Parallel backend setup (for replicates)
+# -----------------------------
+
+n_cores <- as.numeric(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
+cl <- makeCluster(n_cores)
+registerDoParallel(cl)
+
+
+# -----------------------------
+# 5. Run model replicates in parallel
+# ----------------------------- 
+
+results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
     scenario_output <- run_model(
       n_patches        = patches,
       #pop_patches      = pop_patches, 
@@ -180,29 +195,24 @@ for (i in 1:nrow(param_set)) {
         dispersal_prob = param_set$dispersal_prob[i]
       )
     
-    # Append to collectors
-    all_patch_stats <- append(all_patch_stats, list(p_stats))
-    all_allele_frequency <- append(all_allele_frequency, list(allele_stats))
-  }
+    list(patch = patch_stats, allele = allele_stats)
 }
 
 
+stopCluster(cl)
+
 # -----------------------------
-# bind final outputs
+# 6. Bind and save results
 # -----------------------------
-
-all_patch_stats <- bind_rows(all_patch_stats)
-all_allele_frequency <- bind_rows(all_allele_frequency)
-
-
+all_patch_stats <- bind_rows(lapply(results, `[[`, "patch"))
+all_allele_frequency <- bind_rows(lapply(results, `[[`, "allele"))
 
 if (!dir.exists("output")) dir.create("output")
 
-saveRDS(all_patch_stats, file = file.path("output", "disp.rds"))
-saveRDS(all_allele_frequency, file = file.path("output", "freq_disp.rds"))
+saveRDS(all_patch_stats, file = sprintf("output/scenario_%03d_patch.rds", params$scenario))
+saveRDS(all_allele_frequency, file = sprintf("output/scenario_%03d_allele.rds", params$scenario))
 
-
-
+cat("Scenario", params$scenario, "completed.\n")
 
 
 
