@@ -11,10 +11,11 @@ load_libraries <- function(pack) {
 
 
 # Density-dependent reproduction (add a reference here)
-bev_holt <- function(n_pop, dd_rate, fecundity){
-  expected_offspring <- fecundity/(1 + dd_rate*n_pop)
-  return(expected_offspring)
+
+bev_holt <- function(n_pop, fecundity, carrying_capacity) {
+  return(fecundity / (1 + (fecundity - 1) / carrying_capacity * n_pop))
 }
+
 
 # bev_holt <- function(n_pop, fecundity, carrying_capacity) {
 #   return(fecundity / (1 + (fecundity - 1) / carrying_capacity * n_pop))
@@ -139,20 +140,12 @@ create_dispersal_matrix <- function(n_patches, lambda, dispersal_frac, adjacency
 
 # function to compute some statistics
 compute_stat <- function(data, establish_thresh, carrying_capacity) {
-  data <- data |>
-    group_by(patch) |>
-    mutate(arrival = ifelse(any(pop_size > 0),
-                                  min(year[pop_size > 0]),
-                                  0)) |> ungroup()
-  data <- data |>
-    group_by(patch) |>
-    mutate(time_to_k = ifelse((pop_size > 0),
-                           min(year[pop_size >= (0.8 * carrying_capacity)]),
-                           0)) |> ungroup()
   
   data <- data |>
     group_by(patch) |>
-    mutate(log_size = log(pop_size + 1)) |> ungroup()
+    mutate(time_k2 = ifelse((pop_size > 0),
+                            min(year[pop_size >= (0.8 * carrying_capacity)]),
+                            0)) |> ungroup()
   
   data <- data |>
     group_by(patch) |>

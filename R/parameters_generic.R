@@ -9,7 +9,7 @@ patches <- 2                              # Number of patches
 carrying_capacity = 1000                  # carrying capacity  
 n_per_patch <- c(carrying_capacity,0)             # Initial number of individuals per patch for two patch simulation
 #n_per_patch <- c(carrying_capacity,0,0,0,0)             # Initial number of individuals per patch
-sim_years <- 100                          # Number of simulation in days
+sim_years <- 50                          # Number of simulation in days
 establish_threshold <- round(0.005 * carrying_capacity) # 0.5% of carrying capacity 
 
 
