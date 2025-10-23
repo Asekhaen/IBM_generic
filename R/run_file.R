@@ -64,7 +64,7 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
       fecundity        = fecundity,
       carrying_capacity= carrying_capacity,
       lethal_effect    = FALSE,
-      complete_sterile = TRUE,
+      complete_sterile = FALSE,
       sim_years        = sim_years,
       dd_rate          = dd_rate,
       lambda           = lambda,
