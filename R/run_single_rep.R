@@ -1,15 +1,52 @@
-# ===============================
-# run_parallel.R
-# ===============================
 
-# source dependencies
+# load libraries needed
+
+
+###########################################
+#               PARAMETERS                #
+###########################################
+
+set.seed(230)
+
+
+###########################################
+#            
+#            RUN SINGLE SIMULATION      
+#                   
+###########################################
+# Set working directory to sourced file
+
 
 source("dependencies.R")
 
+# -----------------------------
+# Read environment variable from SLURM
+# -----------------------------
+args <- commandArgs(trailingOnly = TRUE)
+task_id <- ifelse(length(args) > 0, as.numeric(args[1]), 1)
+cat("Running task ID:", task_id, "\n")
 
-# -----------------------------
-# 4. Single with replicate setup (for replicates)
-# -----------------------------
+
+
+# -----------------------------------------------------------
+# generating the parameter range manually with expand.grid
+# ----------------------------------------------------------
+
+param_set <- expand.grid(
+  #dispersal_prob = c(0.001, 0.005, 0.01, 0.025, 0.05),
+  complete_sterile = c(TRUE, FALSE)
+) %>%
+  mutate(
+    scenario = row_number()
+  )
+
+# Get parameter set for this SLURM job
+params <- param_set[task_id, ]
+
+
+# -----------------------------------------
+# Parallel backend setup (for replicates)
+# -------------------------------------------
 
 n_cores <- as.numeric(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
 cl <- makeCluster(n_cores)
@@ -17,39 +54,54 @@ registerDoParallel(cl)
 
 
 
-# -----------------------------
-# 5. Run model replicates in parallel
-# -----------------------------
-results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
-  
-  scenario_output <- run_model(
-    n_patches        = patches,
-    n_per_patch      = n_per_patch,
-    n_loci           = pn_loci,
-    init_frequency   = init_frequency,
-    fecundity        = fecundity,
-    carrying_capacity= carrying_capacity,
-    lethal_effect    = FALSE,
-    complete_sterile = TRUE,
-    sim_years        = sim_years,
-    dd_rate          = dd_rate,
-    lambda           = lambda,
-    adjacency_matrix = TRUE,
-    dispersal_frac   = dispersal_prob,
-    decay            = decay
-  )
-  
-  patch_stats <- scenario_output$pop_stats |> mutate(replicate = rep)
-  allele_stats <- scenario_output$allele_freq_per_locus |> mutate(replicate = rep)
+# -----------------------------------------------
+# Run model replicates in parallel
+# -------------------------------------------
 
-  list(patch = patch_stats, allele = allele_stats)
-}
+results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
+    scenario_output <- run_model(
+      n_patches        = patches,
+      #pop_patches      = pop_patches,
+      n_per_patch      = n_per_patch,
+      n_loci           = n_loci,
+      init_frequency   = init_frequency,
+      fecundity        = fecundity,
+      carrying_capacity= carrying_capacity,
+      lethal_effect    = FALSE,
+      complete_sterile = param_set$complete_sterile,
+      sim_years        = sim_years,
+      dd_rate          = dd_rate,
+      lambda           = lambda,
+      adjacency_matrix = TRUE,
+      dispersal_frac   = dispersal_prob,
+      decay            = decay
+    )
+    
+    # --- Add scenario + replicate details ---
+    patch_stats <- scenario_output$pop_stats |>
+      mutate(
+        replicate      = rep,
+        complete_sterile = param_set$complete_sterile
+      )
+    
+    allele_stats <- scenario_output$allele_freq_per_locus |>
+      mutate(
+        replicate      = rep,
+        complete_sterile = param_set$complete_sterile,
+      )
+    
+    list(patch = patch_stats, allele = allele_stats)
+  }
 
 stopCluster(cl)
 
+cat("Runs completed!", "\n")
+
+
 # -----------------------------
-# 6. Bind and save results
+# bind and save final outputs
 # -----------------------------
+
 all_patch_stats <- bind_rows(lapply(results, `[[`, "patch"))
 all_allele_frequency <- bind_rows(lapply(results, `[[`, "allele"))
 
@@ -57,4 +109,3 @@ if (!dir.exists("output")) dir.create("output")
 
 saveRDS(all_patch_stats, file = sprintf("output/scenario_%03d_patch.rds", params$scenario))
 saveRDS(all_allele_frequency, file = sprintf("output/scenario_%03d_allele.rds", params$scenario))
-
