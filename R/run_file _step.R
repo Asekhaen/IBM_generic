@@ -17,10 +17,10 @@ set.seed(230)
 # Set working directory to sourced file
 
 
- source("dependencies.R")
-# 
+source("dependencies.R")
+
 # results <- run_model (
-#   n_patches = patches,
+#   n_patches = n_patches,
 #   pop_patches,
 #   n_per_patch = n_per_patch,
 #   n_loci = n_loci,
@@ -39,8 +39,7 @@ set.seed(230)
 # )
 
 
-# 
-# 
+
 # if (!dir.exists("output")) dir.create("output")
 # 
 # # Save the results object inside the output folder
@@ -54,7 +53,7 @@ all_allele_frequency <- list()
 
 for (rep in 1:n_replicates) {
 results <- run_model (
-    n_patches = patches,
+    n_patches = n_patches,
     pop_patches,
     n_per_patch = n_per_patch,
     n_loci = n_loci,
@@ -101,8 +100,8 @@ all_allele_frequency_df <- dplyr::bind_rows(
 
 if (!dir.exists("output")) dir.create("output")
 
-saveRDS(all_patch_stats_df, file = file.path("output", "step_stone.rds"))
-saveRDS(all_allele_frequency_df, file = file.path("output", "freq_step_stone.rds"))
+saveRDS(all_patch_stats_df, file = file.path("output", "results_noload.rds"))
+saveRDS(all_allele_frequency_df, file = file.path("output", "results_freq_noload.rds"))
 
 
 
@@ -124,13 +123,13 @@ saveRDS(all_allele_frequency_df, file = file.path("output", "freq_step_stone.rds
 #   dispersal_prob  = c(0.0001, 0.05)
 # )
 # 
-
-# -----------------------------
-# 2. Generate and scale LHS Parameter Sets ---
-# -----------------------------
-# sensitivity analysis
-
-
+# 
+# # -----------------------------
+# # 2. Generate and scale LHS Parameter Sets ---
+# # -----------------------------
+# # sensitivity analysis
+# 
+# 
 # lhs_sample <- randomLHS(n_samples, ncol(param_ranges))
 # param_set <- data.frame(
 #   # init_frequency = qunif(lhs_sample[,1], param_ranges[1,1], param_ranges[2,1]),
@@ -138,25 +137,18 @@ saveRDS(all_allele_frequency_df, file = file.path("output", "freq_step_stone.rds
 #   dispersal_prob = qunif(lhs_sample[,1], param_ranges[1,1], param_ranges[2,1]),
 #   scenario = 1:n_samples
 # )
-
-
-# #this is manual set instead of LHS
-# param_set <- tibble(
-#   dispersal_prob = c(0.001, 0.005, 0.01, 0.025, 0.05),
-#   scenario = 1:5
-# )
-# 
 # 
 # 
 # all_patch_stats <- list()
 # all_allele_frequency <- list()
 # 
 # for (i in 1:nrow(param_set)) {
+#   cat("Running sample", i, "/", n_samples, "\n")
 #   for (rep in 1:n_replicates) {
-# 
+#     
 #     scenario_output <- run_model(
 #       n_patches        = patches,
-#       #pop_patches      = pop_patches,
+#       #pop_patches      = pop_patches, 
 #       n_per_patch      = n_per_patch,
 #       n_loci           = n_loci,
 #       init_frequency   = init_frequency,
@@ -171,7 +163,7 @@ saveRDS(all_allele_frequency_df, file = file.path("output", "freq_step_stone.rds
 #       dispersal_frac   = param_set$dispersal_prob[i],
 #       decay            = decay
 #     )
-# 
+#     
 #     # --- Add scenario + replicate details ---
 #     p_stats <- scenario_output$pop_stats |>
 #       mutate(
@@ -181,7 +173,7 @@ saveRDS(all_allele_frequency_df, file = file.path("output", "freq_step_stone.rds
 #         #n_loci         = param_set$n_loci[i],
 #         dispersal_prob = param_set$dispersal_prob[i]
 #       )
-# 
+#     
 #     allele_stats <- scenario_output$allele_freq_per_locus |>
 #       mutate(
 #         #scenario       = param_set$scenario[i],
@@ -190,7 +182,7 @@ saveRDS(all_allele_frequency_df, file = file.path("output", "freq_step_stone.rds
 #         #n_loci         = param_set$n_loci[i],
 #         dispersal_prob = param_set$dispersal_prob[i]
 #       )
-# 
+#     
 #     # Append to collectors
 #     all_patch_stats <- append(all_patch_stats, list(p_stats))
 #     all_allele_frequency <- append(all_allele_frequency, list(allele_stats))
@@ -209,10 +201,10 @@ saveRDS(all_allele_frequency_df, file = file.path("output", "freq_step_stone.rds
 # 
 # if (!dir.exists("output")) dir.create("output")
 # 
-# saveRDS(all_patch_stats, file = file.path("output", "disp_noload.rds"))
-# saveRDS(all_allele_frequency, file = file.path("output", "freq_disp_noload.rds"))
+# saveRDS(all_patch_stats, file = file.path("output", "disp.rds"))
+# saveRDS(all_allele_frequency, file = file.path("output", "freq_disp.rds"))
 # 
-
+# 
 # 
 # 
 
