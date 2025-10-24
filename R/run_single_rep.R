@@ -49,7 +49,7 @@ params <- param_set[task_id, ]
 # -------------------------------------------
 
 n_cores <- as.numeric(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
-cl <- makeCluster(n_cores)
+cl <- makeCluster(n_cores, type = "PSOCK")
 registerDoParallel(cl)
 
 
