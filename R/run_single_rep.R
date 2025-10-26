@@ -87,7 +87,7 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
     allele_stats <- scenario_output$allele_freq_per_locus |>
       mutate(
         replicate      = rep,
-        complete_sterile = param_set$complete_sterile,
+        complete_sterile = param_set$complete_sterile
       )
     
     list(patch = patch_stats, allele = allele_stats)

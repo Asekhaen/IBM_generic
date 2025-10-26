@@ -23,4 +23,4 @@ module load r/4.4.1
 cd $MYSOFTWARE/IBM_generic/R
 
 # Execute the R script using Rscript
-Rscript run_file.R
+Rscript run_single_rep.R

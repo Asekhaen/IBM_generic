@@ -47,7 +47,7 @@ packages <- c("ggplot2",
               "doParallel",
               #"furrr",       # multisession i.e. distribute work across many cores
               #"progressr",
-              "patchwork",
+              #"patchwork",
               #"sensitivity",
               #"rsm",
               #"randomForest",
