@@ -33,7 +33,7 @@ cat("Running task ID:", task_id, "\n")
 # ----------------------------------------------------------
 
 param_set <- expand.grid(
-  #dispersal_prob = c(0.001, 0.005, 0.01, 0.025, 0.05),
+  dispersal_prob = c(0.001, 0.005, 0.01, 0.025, 0.05),
   complete_sterile = c(TRUE, FALSE)
 ) %>%
   mutate(
@@ -73,7 +73,7 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
       dd_rate          = dd_rate,
       lambda           = lambda,
       adjacency_matrix = TRUE,
-      dispersal_frac   = dispersal_prob,
+      dispersal_frac   = param_set$dispersal_prob,
       decay            = decay
     )
     
@@ -81,13 +81,15 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
     patch_stats <- scenario_output$pop_stats |>
       mutate(
         replicate      = rep,
-        complete_sterile = param_set$complete_sterile
+        complete_sterile = param_set$complete_sterile,
+        dispersal_frac   = param_set$dispersal_prob
       )
     
     allele_stats <- scenario_output$allele_freq_per_locus |>
       mutate(
         replicate      = rep,
-        complete_sterile = param_set$complete_sterile
+        complete_sterile = param_set$complete_sterile,
+        dispersal_frac   = param_set$dispersal_prob
       )
     
     list(patch = patch_stats, allele = allele_stats)

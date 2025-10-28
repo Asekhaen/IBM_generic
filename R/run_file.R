@@ -74,7 +74,7 @@ set.seed(230)
 # ----------------------------------------------------------
 
 param_set <- expand.grid(
-  #dispersal_prob = c(0.001, 0.005, 0.01, 0.025, 0.05),
+  dispersal_prob = c(0.001, 0.005, 0.01, 0.025, 0.05),
   complete_sterile = c(TRUE, FALSE)
 ) %>%
   mutate(
@@ -102,7 +102,7 @@ for (i in 1:nrow(param_set)) {
       dd_rate          = dd_rate,
       lambda           = lambda,
       adjacency_matrix = TRUE,
-      dispersal_frac   = dispersal_prob,
+      dispersal_frac   = param_set$dispersal_prob[i],
       decay            = decay
     )
 
@@ -112,7 +112,7 @@ for (i in 1:nrow(param_set)) {
         #scenario       = param_set$scenario[i],
         replicate      = rep,
         #init_frequency = param_set$init_frequency[i],
-        #dispersal_prob = param_set$dispersal_prob[i],
+        dispersal_frac = param_set$dispersal_prob[i],
         complete_sterile = param_set$complete_sterile[i]
       )
 
@@ -121,8 +121,8 @@ for (i in 1:nrow(param_set)) {
         #scenario       = param_set$scenario[i],
         replicate      = rep,
         #init_frequency = param_set$init_frequency[i],
-        #dispersal_prob = param_set$dispersal_prob[i],
-        complete_sterile = param_set$complete_sterile[i],
+        dispersal_frac = param_set$dispersal_prob[i],
+        complete_sterile = param_set$complete_sterile[i]
       )
 
     # Append to collectors

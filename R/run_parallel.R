@@ -18,9 +18,7 @@ cat("Running task ID:", task_id, "\n")
 # -----------------------------
 param_ranges <- data.frame(
   init_frequency = c(0.001, 0.25),
-  n_loci         = c(100, 1000),
-  fecundity      = c(2, 10),
-  dispersal_prob = c(0.001, 0.05)
+  n_loci         = c(100, 1000)
 )
 
 
@@ -33,8 +31,8 @@ lhs_sample <- randomLHS(n_samples, ncol(param_ranges))
 param_set <- data.frame(
   init_frequency = qunif(lhs_sample[,1], param_ranges[1,1], param_ranges[2,1]),
   n_loci         = qinteger(lhs_sample[,2], param_ranges[1,2], param_ranges[2,2]),
-  fecundity      = qinteger(lhs_sample[,3], param_ranges[1,3], param_ranges[2,3]),
-  dispersal_prob = qunif(lhs_sample[,4], param_ranges[1,4], param_ranges[2,4]),
+  # fecundity      = qinteger(lhs_sample[,3], param_ranges[1,3], param_ranges[2,3]),
+  # dispersal_prob = qunif(lhs_sample[,4], param_ranges[1,4], param_ranges[2,4]),
   scenario       = 1:n_samples
 )
 
@@ -61,15 +59,15 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
     n_per_patch      = n_per_patch,
     n_loci           = params$n_loci,
     init_frequency   = params$init_frequency,
-    fecundity        = params$fecundity,
+    fecundity        = fecundity,
     carrying_capacity= carrying_capacity,
     lethal_effect    = FALSE,
-    complete_sterile = TRUE,
+    complete_sterile = FALSE,
     sim_years        = sim_years,
     dd_rate          = dd_rate,
     lambda           = lambda,
     adjacency_matrix = TRUE,
-    dispersal_frac   = params$dispersal_prob,
+    dispersal_frac   = dispersal_prob,
     decay            = decay
   )
   
@@ -78,9 +76,9 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
       scenario       = params$scenario,
       replicate      = rep,
       init_frequency = params$init_frequency,
-      n_loci         = params$n_loci,
-      fecundity      = params$fecundity,
-      dispersal_prob = params$dispersal_prob
+      n_loci         = params$n_loci
+      # fecundity      = params$fecundity,
+      # dispersal_prob = params$dispersal_prob
     )
   
   allele_stats <- scenario_output$allele_freq_per_locus |>
@@ -88,9 +86,9 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
       scenario       = params$scenario,
       replicate      = rep,
       init_frequency = params$init_frequency,
-      n_loci         = params$n_loci,
-      fecundity      = params$fecundity,
-      dispersal_prob = params$dispersal_prob
+      n_loci         = params$n_loci
+      # fecundity      = params$fecundity,
+      # dispersal_prob = params$dispersal_prob
     )
   
   list(patch = patch_stats, allele = allele_stats)
