@@ -26,24 +26,24 @@ set.seed(230)
 # -----------------------------
 
 
-# results <- run_model (
-#   n_patches = patches,
-#   pop_patches,
-#   n_per_patch = n_per_patch,
-#   n_loci = n_loci,
-#   init_frequency = init_frequency,
-#   fecundity = fecundity,
-#   carrying_capacity = carrying_capacity,
-#   prob_survival = prob_survival,
-#   dd_rate = dd_rate,
-#   decay = decay,
-#   lambda = lambda,
-#   lethal_effect = FALSE,
-#   complete_sterile = TRUE,
-#   sim_years = sim_years,
-#   adjacency_matrix = TRUE,
-#   dispersal_frac = dispersal_prob
-# )
+results <- run_model (
+  n_patches = patches,
+  pop_patches,
+  n_per_patch = n_per_patch,
+  n_loci = n_loci,
+  init_frequency = init_frequency,
+  fecundity = fecundity,
+  carrying_capacity = carrying_capacity,
+  prob_survival = prob_survival,
+  dd_rate = dd_rate,
+  decay = decay,
+  lambda = lambda,
+  lethal_effect = FALSE,
+  complete_sterile = FALSE,
+  sim_years = sim_years,
+  adjacency_matrix = TRUE,
+  dispersal_frac = dispersal_prob
+)
 
 
 
@@ -74,7 +74,7 @@ set.seed(230)
 # ----------------------------------------------------------
 
 param_set <- expand.grid(
-  dispersal_prob = c(0.001, 0.005, 0.01, 0.025, 0.05),
+  #dispersal_prob = c(0.001, 0.0025, 0.005, 0.01, 0.025, 0.05),
   complete_sterile = c(TRUE, FALSE)
 ) %>%
   mutate(
@@ -102,7 +102,7 @@ for (i in 1:nrow(param_set)) {
       dd_rate          = dd_rate,
       lambda           = lambda,
       adjacency_matrix = TRUE,
-      dispersal_frac   = param_set$dispersal_prob[i],
+      dispersal_frac   = dispersal_prob,
       decay            = decay
     )
 

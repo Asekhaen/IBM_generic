@@ -18,9 +18,9 @@ lambda <- 0.1
 dispersal_prob <- 0.002
 
 # Genetics: load/drive parameters
-n_loci <- 100                              # try varying 150 to 200
-init_frequency <- 0.022                   
+n_loci <- 175                              # try varying 150 to 200
+init_frequency <- 0.035                   
 decay <- 0.5  
 
-n_replicates <- 50
-n_samples <- 10
+n_replicates <- 200
+n_samples <- 500

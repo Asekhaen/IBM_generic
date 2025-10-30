@@ -33,7 +33,7 @@ cat("Running task ID:", task_id, "\n")
 # ----------------------------------------------------------
 
 param_set <- expand.grid(
-  dispersal_prob = c(0.001, 0.005, 0.01, 0.025, 0.05),
+  dispersal_prob = c(0.001, 0.0025, 0.005, 0.01, 0.025, 0.05),
   complete_sterile = c(TRUE, FALSE)
 ) %>%
   mutate(

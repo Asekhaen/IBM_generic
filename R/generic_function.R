@@ -40,6 +40,7 @@ growth <- function(pop_patches,
   #if(sim_years == 5) browser()
   updated_pop_patches <- list()
   updated_frac_homo <- list()
+  updated_fitness <- list()
   for (i in seq_along(pop_patches)) {
     pop <- pop_patches[[i]]  
     
@@ -85,17 +86,20 @@ growth <- function(pop_patches,
         n_homo <- sum(sterile == 0)
         n_individual <- length(sterile)
         frac_homo <- ifelse(n_individual > 0, n_homo / n_individual, 0)
+        mean_fitness <- mean(n_offspring)
+        
         
       } else {
         n_offspring <- act_fecundity
         frac_homo <- 0
+        mean_fitness <- mean(act_fecundity)
       }
       
     }   else {
       # If not, set offspring count to 0
       n_offspring <- rep(0, n.pop)
       frac_homo <- 0
-      
+      mean_fitness <- 0
     }
     
     
@@ -160,11 +164,14 @@ growth <- function(pop_patches,
     }
     updated_pop_patches[[i]] <- pop
     updated_frac_homo[[i]] <- frac_homo
+    updated_fitness[[i]] <- mean_fitness
+    
   }
   #return(updated_pop_patches)
   result <- list(
     updated_pop_patches = updated_pop_patches,
-    updated_frac_homo = updated_frac_homo
+    updated_frac_homo = updated_frac_homo,
+    updated_fitness = updated_fitness
   )
   
   return(result)
@@ -262,6 +269,7 @@ run_model <- function(n_patches,
     
     pop <- grown_pop$updated_pop_patches
     frac_homo <- grown_pop$updated_frac_homo
+    mean_fitness <- grown_pop$updated_fitness
     
     # Dispersal
     pop <- dispersal(pop, 
@@ -284,6 +292,7 @@ run_model <- function(n_patches,
       patch_occupied = sum(pop_size > establish_threshold),
       unoccupied = length(patch) - patch_occupied,
       prop_homo = unlist(frac_homo),
+      mean_fit = unlist(mean_fitness),
       occupancy_rate = patch_occupied/length(patch)
     )
   
