@@ -40,7 +40,7 @@ growth <- function(pop_patches,
   #if(sim_years == 5) browser()
   updated_pop_patches <- list()
   updated_frac_homo <- list()
-  updated_fitness <- list()
+  updated_fitness <- list ()
   for (i in seq_along(pop_patches)) {
     pop <- pop_patches[[i]]  
     
@@ -162,6 +162,7 @@ growth <- function(pop_patches,
       #pop <- filter(pop, !any_homozygous)
       pop <- pop[!any_homozygous,]
     }
+    
     updated_pop_patches[[i]] <- pop
     updated_frac_homo[[i]] <- frac_homo
     updated_fitness[[i]] <- mean_fitness
@@ -255,6 +256,9 @@ run_model <- function(n_patches,
     #browser()
     cat("year", year, "Underway \n")
     
+   # to track previous growth
+    prev_pop_size <- sapply(pop, nrow)
+    
     # Growth with reproduction
     grown_pop <- growth(pop_patches = pop, 
                   n_loci,
@@ -283,12 +287,21 @@ run_model <- function(n_patches,
     #  break
     #}
     
+    # Track current growth
+    curr_pop_size <- sapply(pop, nrow)
+
+    g_rate <- ifelse(prev_pop_size > 0,
+                     (curr_pop_size / prev_pop_size) - 1,
+                     NA)
+    
+                      
     # Track annual population sizes per patch, occupancy rates, etc.
 
     patch_stats[[year]] <- tibble(
       year = year,
       patch = seq_along(pop),
       pop_size = sapply(pop, nrow),
+      g_rate = g_rate,
       patch_occupied = sum(pop_size > establish_threshold),
       unoccupied = length(patch) - patch_occupied,
       prop_homo = unlist(frac_homo),
