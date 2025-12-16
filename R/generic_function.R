@@ -1,9 +1,9 @@
 
 
 # population setup: Initialisation ####
-ini_pop <- function(n_patches, n_per_patch, n_loci, init_frequency) {
+ini_pop <- function(patches, n_per_patch, n_loci, init_frequency) {
   patches_pop <- list()
-  for (i in 1:n_patches) {
+  for (i in 1:patches) {
     patches_pop[[i]] <- tibble(
       allele1 = matrix(rbinom(n = n_per_patch[i] * n_loci, 
                               size = 1, prob = init_frequency), ncol = n_loci), # 0 = wild-type, 1 = drive allele
@@ -13,7 +13,7 @@ ini_pop <- function(n_patches, n_per_patch, n_loci, init_frequency) {
       mate_allele2 = matrix(NA, nrow = n_per_patch[i], ncol = n_loci),
       alive = TRUE
     )
-    if (length(n_per_patch) != n_patches) warning("Initial patch population does not equal specified number of patches")
+    if (length(n_per_patch) != patches) warning("Initial patch population does not equal specified number of patches")
   }
   return(patches_pop)
 }  
@@ -21,10 +21,8 @@ ini_pop <- function(n_patches, n_per_patch, n_loci, init_frequency) {
 
 
 # growth function ####
-# captures density-dependent reproduction using Beverton-Holt model, genetic 
-# (with linkage) inheritance, and whether the population is overlapping or 
-# non-overlapping
-# 
+# captures density-dependent reproduction using Beverton-Holt model, and genetic 
+# (with linkage) inheritance 
 
 growth <- function(pop_patches, 
                    n_loci,
@@ -32,15 +30,12 @@ growth <- function(pop_patches,
                    fecundity,
                    lethal_effect,
                    complete_sterile,
-                   prob_survival,
-                   dd_rate,
-                   overlapping,
+                   linkage,
                    sim_years) {
   #browser()
   #if(sim_years == 5) browser()
   updated_pop_patches <- list()
-  updated_frac_homo <- list()
-  updated_fitness <- list ()
+  #updated_fitness <- list ()
   for (i in seq_along(pop_patches)) {
     pop <- pop_patches[[i]]  
     
@@ -82,77 +77,91 @@ growth <- function(pop_patches,
         sterile <- as.numeric(!homozygous)
         n_offspring <- act_fecundity * sterile
         
-       # calculate the fraction that are homozygous for reproductive load (genetic load)
-        n_homo <- sum(sterile == 0)
-        n_individual <- length(sterile)
-        frac_homo <- ifelse(n_individual > 0, n_homo / n_individual, 0)
-        mean_fitness <- mean(n_offspring)
-        
-        
+
       } else {
         n_offspring <- act_fecundity
-        frac_homo <- 0
-        mean_fitness <- mean(act_fecundity)
       }
       
     }   else {
       # If not, set offspring count to 0
       n_offspring <- rep(0, n.pop)
-      frac_homo <- 0
-      mean_fitness <- 0
     }
     
     
-    # Offspring generation: Draw the actual number of offspring from a Poisson distribution
+     total_offspring <- sum(n_offspring)
     
-    # n_offspring <- rpois(n.pop, n_offspring)
-    
-    total_offspring <- sum(n_offspring)
-    
-    
-    if (total_offspring > 0){  
-      # Replicate the parents features `n_offspring` times for each offspring, collect only genetic information
-      
-      ind_germline <- pop[rep(1:n.pop, n_offspring), c("allele1", "allele2")]
-      mate_germline <- pop[rep(1:n.pop, n_offspring), c("mate_allele1", "mate_allele2")]
-      
+     # ===========================
+     # GENETIC INHERITANCE
+     # ===========================
 
-      # create covariance matrix betwee loci
-      cov_matrix <- place_loci_mat(n_loci, genome.size = 1, var = 1, decay)
-      
-      
-      # Genetic inheritance
-      
-      which_allele_ind <- which_allele_fn(total_offspring, n_loci, cov_matrix) # female gametes
-      which_allele_mate <- which_allele_fn(total_offspring, n_loci, cov_matrix) # male gametes
-      
-      #  Determination of offspring features
-      offspring <- tibble(
-        allele1 = ifelse(which_allele_ind,
-                         ind_germline$allele1,
-                         ind_germline$allele2),
-        allele2 = ifelse(which_allele_mate,
-                         mate_germline$mate_allele1,
-                         mate_germline$mate_allele2),
-        mate_allele1 = matrix(NA, ncol = n_loci),
-        mate_allele2 = matrix(NA, ncol = n_loci),
-        alive = TRUE
-      )
-      
-   
-      # Update pop with offspring 
-      pop <- offspring
-      # pop <- bind_rows(pop, offspring)
-     
-  
-    } else{
-      pop <- tibble(
-        allele1 = matrix(numeric(0), nrow = 0, ncol = n_loci),
-        allele2 = matrix(numeric(0), nrow = 0, ncol = n_loci),
-        mate_allele1 = matrix(numeric(0), nrow = 0, ncol = n_loci),
-        mate_allele2 = matrix(numeric(0), nrow = 0, ncol = n_loci),
-        alive = logical(0)
-      )}
+# function with option to choose between inheritance type (linkage and without linkage)
+
+     if (total_offspring > 0){
+
+       # Replicate the parents features `n_offspring` times for each offspring, collect only genetic information
+       ind_germline <- pop[rep(1:n.pop, n_offspring), c("allele1", "allele2")]
+       mate_germline <- pop[rep(1:n.pop, n_offspring), c("mate_allele1", "mate_allele2")]
+
+
+       if (linkage) {
+
+         # create covariance matrix between loci
+         cov_matrix <- place_loci_mat(n_loci, genome.size = 1, var = 1, decay)
+
+         # Genetic inheritance
+         which_allele_ind <- which_allele_fn(total_offspring, n_loci, cov_matrix) # female gametes
+         which_allele_mate <- which_allele_fn(total_offspring, n_loci, cov_matrix) # male gametes
+
+         #  Determination of offspring features
+         offspring <- tibble(
+           allele1 = ifelse(which_allele_ind,
+                            ind_germline$allele1,
+                            ind_germline$allele2),
+           allele2 = ifelse(which_allele_mate,
+                            mate_germline$mate_allele1,
+                            mate_germline$mate_allele2),
+           mate_allele1 = matrix(NA, ncol = n_loci),
+           mate_allele2 = matrix(NA, ncol = n_loci),
+           alive = TRUE
+         )
+
+       } else {
+         # Generate random allele choices for each locus of each offspring
+         which_allele_ind  <- matrix(rbinom(total_offspring * n_loci, 1, 0.5),
+                                     nrow = total_offspring, ncol = n_loci)
+         which_allele_mate <- matrix(rbinom(total_offspring * n_loci, 1, 0.5),
+                                     nrow = total_offspring, ncol = n_loci)
+
+         # Offspring tibble
+         offspring <- tibble(
+           allele1 = ifelse(which_allele_ind,
+                            ind_germline$allele1,
+                            ind_germline$allele2),
+           allele2 = ifelse(which_allele_mate,
+                            mate_germline$mate_allele1,
+                            mate_germline$mate_allele2),
+           mate_allele1 = matrix(NA, ncol = n_loci),
+           mate_allele2 = matrix(NA, ncol = n_loci),
+           alive          = TRUE
+         )
+       }
+
+
+       # Update pop with offspring
+       pop <- offspring
+
+     } else{
+       pop <- tibble(
+         allele1 = matrix(numeric(0), nrow = 0, ncol = n_loci),
+         allele2 = matrix(numeric(0), nrow = 0, ncol = n_loci),
+         mate_allele1 = matrix(numeric(0), nrow = 0, ncol = n_loci),
+         mate_allele2 = matrix(numeric(0), nrow = 0, ncol = n_loci),
+         alive = logical(0)
+       )}
+
+
+
+    
     # if turned on, this "if" statement simulates lethal effect of for individuals with 
     # homologous deleterious allele
     
@@ -164,26 +173,22 @@ growth <- function(pop_patches,
     }
     
     updated_pop_patches[[i]] <- pop
-    updated_frac_homo[[i]] <- frac_homo
-    updated_fitness[[i]] <- mean_fitness
-    
+
   }
   #return(updated_pop_patches)
   result <- list(
-    updated_pop_patches = updated_pop_patches,
-    updated_frac_homo = updated_frac_homo,
-    updated_fitness = updated_fitness
+    updated_pop_patches = updated_pop_patches
   )
   
   return(result)
 }
 
 
-dispersal <- function(pop, n_patches, lambda, dispersal_frac, adjacency_matrix, check = TRUE) {
+dispersal <- function(pop, patches, lambda, dispersal_frac, adjacency_matrix, check = TRUE) {
  #browser()
-  
+  set.seed(26)
   # create a dispersal matrix using the created function 
-  disp_matrix <- create_dispersal_matrix(n_patches, lambda, dispersal_frac, adjacency_matrix)
+  disp_matrix <- create_dispersal_matrix(patches, lambda, dispersal_frac, adjacency_matrix)
   
   patch_indices <- dispersed_pop <- vector(mode = "list", length = nrow(disp_matrix))
   
@@ -227,7 +232,7 @@ dispersal <- function(pop, n_patches, lambda, dispersal_frac, adjacency_matrix, 
 
 
 #### Simulation function 
-run_model <- function(n_patches,
+run_model <- function(patches,
                       pop_patches,
                       n_per_patch,
                       n_loci,
@@ -236,26 +241,25 @@ run_model <- function(n_patches,
                       carrying_capacity,
                       lethal_effect,
                       complete_sterile,
+                      linkage,
                       sim_years,
-                      prob_survival,
-                      dd_rate,
-                      overlapping,
                       lambda, 
                       adjacency_matrix,
                       dispersal_frac,
                       decay
                       ){
   
-  pop <- ini_pop(n_patches, n_per_patch, n_loci, init_frequency)
+  pop <- ini_pop(patches, n_per_patch, n_loci, init_frequency)
   
   patch_stats <- list()
-  allele_frequency <- list()
-  allele_freq_per_locus <- list()
-
+  genetic_data <- list()
+  time_halfK <- rep(NA, patches)
+  dispersal_kernel <- matrix()
+  
   for (year in 1:sim_years) {
     #browser()
     cat("year", year, "Underway \n")
-    
+
    # to track previous growth
     prev_pop_size <- sapply(pop, nrow)
     
@@ -266,123 +270,154 @@ run_model <- function(n_patches,
                   fecundity,
                   lethal_effect,
                   complete_sterile,
-                  prob_survival,
-                  dd_rate,
-                  overlapping,
+                  linkage,
                   sim_years = year)
     
     pop <- grown_pop$updated_pop_patches
-    frac_homo <- grown_pop$updated_frac_homo
-    mean_fitness <- grown_pop$updated_fitness
+
+
+    #if (nrow(pop[[patches]]) > carrying_capacity/2) {
+    #  break
+    #}
+    
     
     # Dispersal
     pop <- dispersal(pop, 
-                     n_patches, 
+                     patches, 
                      lambda, 
                      dispersal_frac, 
                      adjacency_matrix, 
                      check = FALSE)
-
-    #if (nrow(pop[[n_patches]]) > carrying_capacity/2) {
-    #  break
-    #}
     
-    # Track current growth
+    # Track genetic stats 
+    genetic_data[[year]] <- lapply(seq_along(pop), function(patch_id) {
+      
+      patch_pop <- pop[[patch_id]]
+      allele1   <- patch_pop$allele1   
+      allele2   <- patch_pop$allele2   
+      n_ind   <- nrow(allele1)
+      n_loci  <- ncol(allele1)
+      
+      genotype_sum <- allele1 + allele2    
+      AA_count <- colSums(genotype_sum == 0)   # homozygous wild
+      Aa_count <- colSums(genotype_sum == 1)   # heterozygous
+      aa_count <- colSums(genotype_sum == 2)   # homozygous deleterious (the proportion of "aa" can be use genetic load)
+
+      
+      total_alleles <- 2 * n_ind
+      deleterious_count <- colSums(allele1 == 1) + colSums(allele2 == 1)
+      wild_count <- total_alleles - deleterious_count
+      freq_a <- deleterious_count / total_alleles
+      freq_A <- wild_count / total_alleles
+      
+      tibble::tibble(
+        patch = patch_id,
+        year  = year,
+        locus = 1:n_loci,
+        AA = AA_count,
+        Aa = Aa_count,
+        aa = aa_count,
+        freq_A = freq_A,
+        freq_a = freq_a
+      )
+    })
+    
+    # patches occupied
     curr_pop_size <- sapply(pop, nrow)
-
-    g_rate <- ifelse(prev_pop_size > 0,
-                     (curr_pop_size / prev_pop_size) - 1,
-                     NA)
+    occupied <- sum(curr_pop_size >= establish_threshold)
     
-                      
-    # Track annual population sizes per patch, occupancy rates, etc.
+    #time for population to reach half K (carrying capapcity)
+    time_halfK[is.na(time_halfK) & curr_pop_size >= half_K] <- year
+    
+    
+    # growth rate 
+    growth_rate <- ifelse(prev_pop_size > 0,
+                               ((curr_pop_size - prev_pop_size) / prev_pop_size),
+                               0)
 
+    # Track population statistics
     patch_stats[[year]] <- tibble(
       year = year,
       patch = seq_along(pop),
       pop_size = sapply(pop, nrow),
-      g_rate = g_rate,
-      patch_occupied = sum(pop_size > establish_threshold),
-      unoccupied = length(patch) - patch_occupied,
-      prop_homo = unlist(frac_homo),
-      mean_fit = unlist(mean_fitness),
-      occupancy_rate = patch_occupied/length(patch)
+      time_half_K = time_halfK,
+      g_rate =  growth_rate,
+      patch_occupied = occupied
     )
   
-    
-    # Track proportion homozygous 
 
-    # Track annual overall allele frequency per patch
-    
-  allele_frequency[[year]] <-  lapply(seq_along(pop), function(patch_id) {
-    patch_pop <- pop[[patch_id]]
-    loci_n  <- ncol(patch_pop$allele1)  
-    n_ind   <- nrow(patch_pop$allele1)  
-    total_allele_overall <- 2 * n_ind * loci_n
-    
-    overall <- tibble(
-      year        = year,
-      patch      = patch_id,
-      total      = total_allele_overall,
-      deleterious= sum(patch_pop$allele1 == 1) + sum(patch_pop$allele2 == 1),
-      wild       = total_allele_overall - deleterious,
-      freq       = ifelse(total_allele_overall == 0, 0, deleterious / total_allele_overall)
-    )
-  })
-  
-  
-  # allele frequency per locus per patch
-  
-  allele_freq_per_locus[[year]] <- lapply(seq_along(pop), function(patch_id) {
-    patch_pop <- pop[[patch_id]]
-    loci_n    <- ncol(patch_pop$allele1)
-    n_ind     <- nrow(patch_pop$allele1)
-    total_per_locus <- 2 * n_ind        # per locus = 2 alleles per individual
-    
-    # deleterious alleles per locus
-    deleterious_per_locus <- colSums(patch_pop$allele1 == 1) +
-      colSums(patch_pop$allele2 == 1)
-    
-    # calculate frequencies per locus 
-    freq_per_locus <- if (total_per_locus == 0) {
-      rep(0, loci_n)
-    } else {
-      deleterious_per_locus / total_per_locus
-    }
-    
-    tibble(
-      year  = year,
-      patch = patch_id,
-      !!!setNames(as.list(freq_per_locus), paste0("locus", seq_len(loci_n)))
-    )
-  })
-  
+
   #bind population dynamics outputs 
   patch_stats_df <- bind_rows(patch_stats)
-  # calculate some stats
-  patch_stats_df <- compute_stat(patch_stats_df,establish_threshold, carrying_capacity)
   # estimate spread rate or speed
   patch_stats_df <- invasion_speed(patch_stats_df)
   
-  #bind combine allele frequency, select and add to population dynamics data
-  allele_frequency_df <- bind_rows(allele_frequency)
-  allele_freq <- allele_frequency_df |> select(freq)
-  pop_stat <- bind_cols(patch_stats_df, allele_freq)
-  
-  #calculate fitness and genetic load
-  
 
-  #bind per locus allele frequency
-  allele_freq_per_locus_df <- bind_rows(allele_freq_per_locus)
-  
+  #genotype and allele frequency
+  genetic_data_df <- bind_rows(genetic_data)
   }
   
   
+  #####################################
+  # Plot landscape
+  #####################################  
+  
+
+if (adjacency_matrix) {
+  # Plot One-dimensional landscape with nearest-neighbour
+
+  x <- 1:patches
+  y <- rep(0, patches)
+
+  plot(
+    x, y,
+    pch = 21, bg = "skyblue",
+    cex = 8,
+    xlab = "Patches",
+    ylab = "",
+    yaxt = "n",
+    xlim = c(0, patches+1),
+    ylim = c(-0.5, 0.5),
+    main = "1D steeping-stone landscape"
+  )
+
+  # Label patches
+  text(x, y, labels = paste0("P", 1:patches), cex = 0.8, col = "black")
+} else {
+  set.seed(26)
+  #plot metapopulation network landscape
+
+  coords <- create_coordinates(patches)
+  # dispersal matrix
+  dist_matrix <- as.matrix(dist(coords, method = "euclidean"))
+  #exponential dispersal kernel
+  dispersal_kernel <- exp(-lambda * dist_matrix)
+  # set the diagonal elements to 0 to prevent self-dispersal
+  diag(dispersal_kernel) <- 0
+
+
+  #Plot using weights for edge width (using R package "igraph")
+  g <- graph_from_adjacency_matrix(dispersal_kernel, mode="undirected", weighted=TRUE, diag=FALSE)
+
+  plot(
+    g,
+    layout = coords,
+    vertex.size = 35,
+    vertex.color = "skyblue",
+    vertex.label = paste0("P", 1:patches),
+    vertex.label.color = "black",
+    edge.width = E(g)$weight * 10,  # scale for visibility
+    edge.color = rgb(0,0,0, alpha=E(g)$weight),
+    main = "Metapopulation network landscape"
+  )
+
+}
+
   # Return the collected data
   results <- list(
-    #final_pop = pop,
-    pop_stats = pop_stat,
-    allele_freq_per_locus = allele_freq_per_locus_df
+    final_pop = pop,
+    patch_stats = patch_stats_df,
+    genetic_data = genetic_data_df
   )
 }
 

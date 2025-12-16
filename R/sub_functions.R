@@ -10,8 +10,7 @@ load_libraries <- function(pack) {
 }
 
 
-# Density-dependent reproduction (add a reference here)
-
+# Density-dependent reproduction 
 
 bev_holt <- function(n_pop, fecundity, carrying_capacity) {
   return(fecundity / (1 + (fecundity - 1) / carrying_capacity * n_pop))
@@ -21,12 +20,6 @@ bev_holt <- function(n_pop, fecundity, carrying_capacity) {
 #   expected_offspring <- fecundity/(1 + dd_rate*n_pop)
 #   return(expected_offspring)
 # }
-
-# survival_ricker <- function(n_pop, carrying_capacity, max_survival, decay_rate){
-#   surv <- max_survival * exp(-decay_rate * (n_pop/carrying_capacity))
-#   return(surv) 
-# }
-
 
 # Density dependent fecundity function
 # fec_dd <- function(n_pop, dd_rate, prob_survival, c = 0.06){
@@ -84,7 +77,20 @@ which_allele_fn <- function(n_offspring, n_loci, cov_matrix){
 # }
 
 
+# random selection of allele, without linkage
+which_allele <- function(offspring, n_loci){
+    matrix(rbinom(n_offspring * n_loci, 1, 0.5) == 1,
+         nrow = n_offspring,
+         ncol = n_loci)
+}
 
+
+# create random coordinates for the patches
+
+create_coordinates <- function(x) {
+  coords <- matrix(runif(x * 2), ncol = 2)
+  return(coords)
+} 
 
 # dispersal: uses a either a negative exponential dispersal kernel (for spatial 
 # metapopulation) or nearest neighbour/adjacency matrix (one dimensional space 
@@ -92,10 +98,10 @@ which_allele_fn <- function(n_offspring, n_loci, cov_matrix){
 # matrix or a negative exponential decay matrix based on a true of false statement 
 # (see run_file.R)
 
-create_dispersal_matrix <- function(n_patches, lambda, dispersal_frac, adjacency_matrix){
+create_dispersal_matrix <- function(patches, lambda, dispersal_frac, adjacency_matrix){
 
   if(adjacency_matrix){
-    matrix_landscape <- matrix(0, n_patches, n_patches)
+    matrix_landscape <- matrix(0, patches, patches)
     adjacency <- abs(row(matrix_landscape) - col(matrix_landscape)) == 1
     adjacency[] <- as.numeric(adjacency)
 
@@ -109,17 +115,16 @@ create_dispersal_matrix <- function(n_patches, lambda, dispersal_frac, adjacency
     # and add back the probability of remaining
     dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
       (1 - dispersal_frac) * diag(nrow(adjacency))
+
   } else {
-    # create coordinates for the patches/locations
-    coords <- as.data.frame(100 * matrix(runif(n_patches * 2), ncol = 2))
-    colnames(coords) <- c("x","y")
-    
+    coords <- create_coordinates(patches)
     # dispersal matrix
     dist_matrix <- as.matrix(dist(coords, method = "euclidean"))
     #exponential dispersal kernel
     dispersal_kernel <- exp(-lambda * dist_matrix)
     # set the diagonal elements to 0 to prevent self-dispersal
     diag(dispersal_kernel) <- 0
+
     # make these rows sum to 1 to get probability of moving to other patch
     # *if* they left. This dispersal matrix gives the probability of the vector
     # vector moving between patches
@@ -130,36 +135,15 @@ create_dispersal_matrix <- function(n_patches, lambda, dispersal_frac, adjacency
     # and add back the probability of remaining
     dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
       (1 - dispersal_frac) * diag(nrow(dispersal_kernel))
+    
+    
+    # to ensure tat the probability of movement between patches aligns with the 
+    # number of individuals per patch when comparing the plot with the patch population statistics
+
   }
   return(dispersal_matrix)
 }
 
-
-# plot(coords, cex = 4)
-# text(coords, labels = 1:patches)
-
-
-# function to compute some statistics
-compute_stat <- function(data, establish_thresh, carrying_capacity) {
-
-  data <- data |>
-    group_by(patch) |>
-    mutate(time_k2 = ifelse((pop_size > 0),
-                           min(year[pop_size >= (0.8 * carrying_capacity)]),
-                           0)) |> ungroup()
-
-  data <- data |>
-    group_by(patch) |>
-    mutate(growth_rate = (pop_size - lag(pop_size)) / lag(pop_size)) |>
-    ungroup()
-    
-  # data <- data |>
-  #   group_by(patch) |>
-  #   mutate(log_rate = ifelse(!is.na(lag(pop_size)) & lag(pop_size) > 0,
-  #                               log(pop_size/lag(pop_size)),
-  #                               0)) |>    ungroup()
-  return(data)
-}
 
 
 # function for invasion speed 

@@ -27,22 +27,21 @@ set.seed(230)
 
 
 results <- run_model (
-  n_patches = patches,
+  patches = patches,
   pop_patches,
   n_per_patch = n_per_patch,
   n_loci = n_loci,
   init_frequency = init_frequency,
   fecundity = fecundity,
   carrying_capacity = carrying_capacity,
-  prob_survival = prob_survival,
-  dd_rate = dd_rate,
   decay = decay,
   lambda = lambda,
   lethal_effect = FALSE,
   complete_sterile = FALSE,
+  linkage = FALSE,
   sim_years = sim_years,
   adjacency_matrix = TRUE,
-  dispersal_frac = dispersal_prob
+  dispersal_frac = dispersal_frac
 )
 
 
