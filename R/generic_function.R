@@ -33,7 +33,7 @@ growth <- function(pop_patches,
                    linkage,
                    sim_years) {
   #browser()
-  #if(sim_years == 5) browser()
+  #if(sim_years == 4) browser()
   updated_pop_patches <- list()
   #updated_fitness <- list ()
   for (i in seq_along(pop_patches)) {
@@ -368,21 +368,27 @@ if (adjacency_matrix) {
 
   x <- 1:patches
   y <- rep(0, patches)
-
+  
+  
+  #pdf("1D_landscape.pdf", width = 8, height = 6)
+  png("1D_landscape.png", width = 1200, height = 800, res = 150)
+  
   plot(
     x, y,
     pch = 21, bg = "skyblue",
-    cex = 8,
+    cex = 6,
     xlab = "Patches",
     ylab = "",
     yaxt = "n",
     xlim = c(0, patches+1),
     ylim = c(-0.5, 0.5),
-    main = "1D steeping-stone landscape"
+    main = "1D stepping-stone"
   )
 
   # Label patches
-  text(x, y, labels = paste0("P", 1:patches), cex = 0.8, col = "black")
+  text(x, y, labels = paste0("P", 1:patches), cex = 1, col = "black")
+
+  dev.off()
 } else {
   set.seed(26)
   #plot metapopulation network landscape
@@ -399,6 +405,8 @@ if (adjacency_matrix) {
   #Plot using weights for edge width (using R package "igraph")
   g <- graph_from_adjacency_matrix(dispersal_kernel, mode="undirected", weighted=TRUE, diag=FALSE)
 
+  png("metapop_landscape.png", width = 1200, height = 800, res = 150)
+  
   plot(
     g,
     layout = coords,
@@ -408,14 +416,14 @@ if (adjacency_matrix) {
     vertex.label.color = "black",
     edge.width = E(g)$weight * 10,  # scale for visibility
     edge.color = rgb(0,0,0, alpha=E(g)$weight),
-    main = "Metapopulation network landscape"
+    main = "Metapopulation network"
   )
-
+dev.off()
 }
 
   # Return the collected data
   results <- list(
-    final_pop = pop,
+    #final_pop = pop,
     patch_stats = patch_stats_df,
     genetic_data = genetic_data_df
   )
