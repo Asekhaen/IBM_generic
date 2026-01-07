@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1                # Number of tasks (use 1 for a serial R job)
 #SBATCH --cpus-per-task=32        # Number of CPUs per task
-#SBATCH --time=10:00:00           # Maximum wall-clock time (HH:MM:SS)
+#SBATCH --time=20:00:00           # Maximum wall-clock time (HH:MM:SS)
 #SBATCH --array=1-2               # run 1000 parameter sets in parallel
 #SBATCH --mem-per-cpu=4G          # Memory requested per node
 #SBATCH --output=r_job_%j.out     # Standard output file

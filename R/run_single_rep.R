@@ -70,8 +70,8 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
       carrying_capacity= carrying_capacity,
       decay            = decay,
       lambda           = lambda,
-      lethal_effect    = param_set$lethal_effect,
-      complete_sterile = param_set$complete_sterile,
+      lethal_effect    = params$lethal_effect,
+      complete_sterile = params$complete_sterile,
       linkage = TRUE,
       sim_years        = sim_years,
       adjacency_matrix = TRUE,
@@ -82,21 +82,21 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
     # --- Add scenario + replicate details ---
     patch_stats <- scenario_output$patch_stats |>
       mutate(
-        scenario       = param_set$scenario[i],
+        scenario       = params$scenario,
         replicate      = rep,
-        complete_sterile = param_set$complete_sterile,
-        lethal_effect    = param_set$lethal_effect
+        complete_sterile = params$complete_sterile,
+        lethal_effect    = params$lethal_effect
       )
     
     genetic_stats <- scenario_output$genetic_data |>
       mutate(
-        scenario       = param_set$scenario[i],
+        scenario       = params$scenario,
         replicate      = rep,
-        complete_sterile = param_set$complete_sterile,
-        lethal_effect    = param_set$lethal_effect
+        complete_sterile = params$complete_sterile,
+        lethal_effect    = params$lethal_effect
       )
     
-    list(patch = patch_stats, genet = allele_stats)
+    list(patch = patch_stats, genet = genetic_stats)
   }
 
 stopCluster(cl)
