@@ -80,7 +80,7 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
     
     
     # --- Add scenario + replicate details ---
-    patch_stats <- scenario_output$patch_stats |>
+    patch_stats <- scenario_output$patch_stats %>%
       mutate(
         scenario       = params$scenario,
         replicate      = rep,
@@ -88,7 +88,7 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
         lethal_effect    = params$lethal_effect
       )
     
-    genetic_stats <- scenario_output$genetic_data |>
+    genetic_stats <- scenario_output$genetic_data %>%
       mutate(
         scenario       = params$scenario,
         replicate      = rep,
