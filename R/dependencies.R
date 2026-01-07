@@ -45,7 +45,7 @@ packages <- c("ggplot2",
               "purrr",       # uses pmap to loop through different scenarios
               "lhs",
               "doParallel",
-              "igraph",
+              #"igraph",
               #"furrr",       # multisession i.e. distribute work across many cores
               #"progressr",
               #"patchwork",
