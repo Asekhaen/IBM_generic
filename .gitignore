@@ -2,3 +2,13 @@
 .Rhistory
 .RData
 .Ruserdata
+*.pdf
+*.docx
+*.csv
+*.png
+output/
+output2/
+gene_drive/
+figures/
+check/
+ibm_data/

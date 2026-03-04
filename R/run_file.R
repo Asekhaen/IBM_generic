@@ -6,197 +6,154 @@
 #               PARAMETERS                #
 ###########################################
 
-set.seed(230)
-
-# Source functions and parameters 
-source("R/sub_functions.R")
-source("R/generic_function.R")
-source("R/parameters_generic.R")
-
-packages <- c("ggplot2", 
-              "dplyr",
-              "tibble",
-              "tidyr", 
-              "readr", 
-              "purrr",       # uses pmap to loop through different scenarios
-              "furrr",       # multisession i.e. distribute work across many cores
-              "progressr",
-              "data.table")   # shows the progress
-
-
-load_libraries(packages)
+#set.seed(230)
 
 
 ###########################################
-#            
-#            RUN SINGLE SIMULATION      
-#                   
+#
+#            RUN SINGLE SIMULATION
+#
 ###########################################
+# Set working directory to sourced file
 
-results <- run_model (n_patches = patches,
-           pop_patches,
-           n_per_patch = n_per_patch,
-           n_loci = n_loci,
-           init_frequency = init_frequency,
-           fecundity = fecundity,
-           carrying_capacity = carrying_capacity,
-           prob_survival = prob_survival,
-           dd_rate = dd_rate,
-           decay = decay,
-           lambda = lambda,
-           lethal_effect = FALSE,
-           complete_sterile = FALSE,
-           sim_years = sim_years,
-           overlapping = TRUE,
-           adjacency_matrix = TRUE,
-           dispersal_frac = dispersal_prob)
+
+# source("dependencies.R")
+# 
+# 
+# 
+# # -----------------------------
+# #  Single run
+# # -----------------------------
+# 
+# 
+# results <- run_model (
+#   patches = patches,
+#   pop_patches,
+#   n_per_patch = n_per_patch,
+#   n_loci = n_loci,
+#   init_frequency = init_frequency,
+#   fecundity = fecundity,
+#   carrying_capacity = carrying_capacity,
+#   decay = decay,
+#   lambda = lambda,
+#   lethal_effect = FALSE,
+#   complete_sterile = FALSE,
+#   linkage = FALSE,
+#   sim_years = sim_years,
+#   adjacency_matrix = TRUE,
+#   dispersal_frac = dispersal_frac
+# )
+
+
+
+# ------------------------------------------------------
+#  multiple runs, varying parameters and replicates
+# ---------------------------------------------------
+
+# -----------------------------------------------------------
+# generating the parameter range manually with expand.grid
+# ----------------------------------------------------------
+
+source("dependencies.R")
+
+
+param_set <- expand.grid(
+  #dispersal_frac = c(0.001, 0.0025, 0.005, 0.01),
+  # init_frequency = c(0.01, 0.025, 0.05, 0.1),
+  # n_loci = c(1, 10, 100, 1000),
+  lethal_effect = c(TRUE, FALSE),
+  complete_sterile = c(TRUE, FALSE)
+) |>
+  mutate(
+    scenario = row_number()
+  )
+
+# param_set <- param_set [-(1:16),]
+
+param_set <- param_set [-(1),]
+
+
+write_csv(param_set, file = "output/param_set.csv")
+
+all_patch_stats <- list()
+all_genetic_data <- list()
+
+for (i in 1:nrow(param_set)) {
+  cat("Running parameter set:", param_set$scenario[i], "\n")
+  for (rep in 1:n_replicates) {
+
+    scenario_output <- run_model (
+      patches = patches,
+      pop_patches,
+      n_per_patch = n_per_patch,
+      n_loci = n_loci,
+      init_frequency = init_frequency,
+      fecundity = fecundity,
+      carrying_capacity = carrying_capacity,
+      #decay = decay,
+      lambda = lambda,
+      lethal_effect = param_set$lethal_effect[i],
+      complete_sterile = param_set$complete_sterile[i],
+      linkage = FALSE,
+      sim_years = sim_years,
+      adjacency_matrix = TRUE,
+      dispersal_frac = dispersal_frac
+    )
+
+    # --- Add scenario + replicate details ---
+    patch_stats <- scenario_output$patch_stats |>
+      mutate(
+        scenario       = param_set$scenario[i],
+        replicate      = rep
+        # n_loci = param_set$n_loci[i],
+        #dispersal_frac = param_set$dispersal_frac[i],
+        # init_frequency = param_set$init_frequency[i]
+      )
+
+    genetic_stats <- scenario_output$genetic_data |>
+      mutate(
+        scenario       = param_set$scenario[i],
+        replicate      = rep
+        # lethal_effect = param_set$lethal_effect[i],
+        # n_loci = param_set$n_loci[i],
+        #dispersal_frac = param_set$dispersal_frac[i],
+        # init_frequency = param_set$init_frequency[i]
+      )
+
+    # Append to collectors
+    all_patch_stats <- append(all_patch_stats, list(patch_stats))
+    all_genetic_data <- append(all_genetic_data, list(genetic_stats))
+  }
+}
+
+cat("Runs completed!", "\n")
+
+# -----------------------------
+# bind final outputs
+# -----------------------------
+
+cat("Binding output...", "\n")
+
+all_patch_stats <- bind_rows(all_patch_stats)
+all_genetic_data <- bind_rows(all_genetic_data)
+
+# -----------------------------
+# save bound outputs
+# -----------------------------
 
 if (!dir.exists("output")) dir.create("output")
-saveRDS(results, file = "C:\\Users\\22181916\\Documents\\Curtin-PhD\\R_and_IBM\\Generic_IBM_Proj\\IBM_generic\\output\\results.rds")
+saveRDS(all_patch_stats, file = file.path("output", "step_data2.rds"))
+saveRDS(all_genetic_data, file = file.path("output", "step_genetic2.rds"))
 
-
-  
-  ###################################################
-  #
-  #   RUN PARALLEL SIMULATIONS (MULTIPLE SCENARIOS)  
-  #              
-  ###################################################
-
- 
-# To run multiple scenarios with varying parameters, use the #purrr:pmap" function
+cat("Binding completed! Output saved", "\n")
 
 
 
-# # create the different simulation scenarios with unique ids
-# sim_scenarios <- expand.grid(
-#   init_frequency = c(0.05, 0.1, 0.25),
-#   dispersal_prob = c(0.00001, 0.0001, 0.001)
-# ) %>%
-#   mutate(
-#     scenario_name = paste0("freq", init_frequency,
-#                            #"_fec", fecundity,
-#                            #"_loci", n_loci,
-#                            "_disp", dispersal_prob),
-#     sim_id = row_number()
-#   )
-# 
-# 
-# # create a storgae folder for simulation results
-# if (!dir.exists("results")) dir.create("results")
-# 
-# 
-# # progress bar to track simulation status
-# handlers(global = TRUE)
-# with_progress({
-#   sim_bar <- progressor(steps = nrow(sim_scenarios))
-# 
-#   # simulation
-#   sim <- sim_scenarios %>%
-#     pmap(function(init_frequency,
-#                   dispersal_prob,
-#                   scenario_name,
-#                   sim_id) {
-#       sim_out <- run_model(
-#         n_patches = patches,
-#         pop_patches,
-#         n_per_patch = n_per_patch,
-#         n_loci = n_loci,
-#         init_frequency = init_frequency,
-#         fecundity = fecundity,
-#         carrying_capacity = carrying_capacity,
-#         prob_survival = prob_survival,
-#         dd_rate = dd_rate,
-#         decay = decay,
-#         lambda = lambda,
-#         lethal_effect = TRUE,
-#         complete_sterile = FALSE,
-#         sim_years = sim_years,
-#         overlapping = TRUE,
-#         adjacency_matrix = TRUE,
-#         dispersal_frac = dispersal_prob
-#       )
-# 
-#       file_name <- paste0("results/sim_", sim_id, "_", scenario_name, ".rds")
-#       saveRDS(sim_out, file_name)
-# 
-#       sim_bar()
-#       file_name
-#     })
-# })
+# two_patch_data <- split(two_patch_data, two_patch_data$scenario)
+# two_genetic_data <- split(two_genetic, two_genetic$scenario)
+#
+# if (!dir.exists("step")) dir.create("step")
+# saveRDS(step_stone_param, file ="output/step/step_stone_param.rds" )
+# saveRDS(two_patch_data, file ="step/two_patch_data.rds" )
+# saveRDS(two_genetic_data, file ="step/two_genetic_data.rds" )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# # create the different simulation scenarios with unique ids
-# sim_scenarios <- expand.grid(
-#   init_frequency = c(0.05, 0.1, 0.25),
-#   fecundity = c(1, 5, 10),
-#   n_loci = c(10,50,100),
-#   dispersal_prob = c(0.00001, 0.0001, 0.001)
-# ) %>%
-#   mutate(
-#     scenario_name = paste0("freq", init_frequency,
-#                            "_fec", fecundity,
-#                            "_loci", n_loci,
-#                            "_disp", dispersal_prob),
-#     sim_id = row_number()
-#   )
-# 
-# 
-# # create a storgae folder for simulation results
-# if (!dir.exists("results")) dir.create("results")
-# 
-# 
-# # progress bar to track simulation status
-# handlers(global = TRUE)
-# with_progress({
-#   sim_bar <- progressor(steps = nrow(sim_scenarios))
-# 
-#   # simulation
-#   sim <- sim_scenarios %>%
-#     pmap(function(init_frequency,
-#                   fecundity,
-#                   n_loci,
-#                   dispersal_prob,
-#                   scenario_name,
-#                   sim_id) {
-#       sim_out <- run_model(
-#         n_patches = patches,
-#         pop_patches,
-#         n_per_patch = n_per_patch,
-#         n_loci = n_loci,
-#         init_frequency = init_frequency,
-#         fecundity = fecundity,
-#         carrying_capacity = carrying_capacity,
-#         prob_survival = prob_survival,
-#         dd_rate = dd_rate,
-#         decay = decay,
-#         lambda = lambda,
-#         lethal_effect = FALSE,
-#         complete_sterile = TRUE,
-#         sim_years = sim_years,
-#         overlapping = TRUE,
-#         adjacency_matrix = TRUE,
-#         dispersal_frac = dispersal_prob
-#       )
-# 
-#       file_name <- paste0("results/sim_", sim_id, "_", scenario_name, ".rds")
-#       saveRDS(sim_out, file_name)
-# 
-#       sim_bar()
-#       file_name
-#     })
-# })
