@@ -1,12 +1,13 @@
 
-# load libraries needed
-
 
 ###########################################
 #               PARAMETERS                #
 ###########################################
 
 set.seed(230)
+
+#This code sources all  required functions and sub models
+source("dependencies.R")
 
 
 ###########################################
@@ -17,7 +18,7 @@ set.seed(230)
 # Set working directory to sourced file
 
 
-source("dependencies.R")
+
 
 # -----------------------------
 # Read environment variable from SLURM
@@ -41,6 +42,8 @@ param_set <- expand.grid(
     scenario = row_number()
   )
 
+
+param_set <- param_set [-(1),]
 
 # Get parameter set for this SLURM job
 params <- param_set[task_id, ]
@@ -72,7 +75,7 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
     lambda           = lambda,
     lethal_effect    = params$lethal_effect,
     complete_sterile = params$complete_sterile,
-    linkage = TRUE,
+    linkage          = FALSE,
     sim_years        = sim_years,
     adjacency_matrix = TRUE,
     dispersal_frac   = dispersal_frac
@@ -96,22 +99,32 @@ results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
       lethal_effect    = params$lethal_effect
     )
   
-  list(patch = patch_stats, genet = genetic_stats)
+  #list(patch = patch_stats, genet = genetic_stats)
+  # Append to collectors
+  all_patch_stats <- append(all_patch_stats, list(patch_stats))
+  all_genetic_data <- append(all_genetic_data, list(genetic_stats))
 }
 
 stopCluster(cl)
 
+
 cat("Runs completed!", "\n")
 
+# -----------------------------
+# bind final outputs
+# -----------------------------
+
+cat("Binding output...", "\n")
+
+all_patch_stats <- bind_rows(all_patch_stats)
+all_genetic_data <- bind_rows(all_genetic_data)
 
 # -----------------------------
-# bind and save final outputs
+# save bound outputs
 # -----------------------------
-
-all_patch_stats <- bind_rows(lapply(results, `[[`, "patch"))
-all_genetic_stats <- bind_rows(lapply(results, `[[`, "genet"))
 
 if (!dir.exists("output")) dir.create("output")
+saveRDS(all_patch_stats, file = file.path("output", "step_data1000.rds"))
+saveRDS(all_genetic_data, file = file.path("output", "step_genetic1000.rds"))
 
-saveRDS(all_patch_stats, file = sprintf("output/scenario_%03d_patch.rds", params$scenario))
-saveRDS(all_genetic_stats, file = sprintf("output/scenario_%03d_allele.rds", params$scenario))
+cat("Binding completed! Output saved", "\n")

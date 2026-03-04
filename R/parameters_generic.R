@@ -18,6 +18,6 @@ n_loci <- 1000                                             # for analysis use 1,
 init_frequency <- 0.01                                     # for analysis use 0.01, 0.025, 0.05, 0.1
 # decay <- 0.5  
 
-n_replicates <- 10                                        # make this 1000 replicates for the final (analysed) data set to capture more stochasticity
+n_replicates <- 100                                        # make this 1000 replicates for the final (analysed) data set to capture more stochasticity
 n_samples <- 100
 
