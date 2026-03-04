@@ -51,7 +51,7 @@ params <- param_set[task_id, ]
 # -------------------------------------------
 
 n_cores <- as.numeric(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
-cl <- makeCluster(n_cores, type = "PSOCK")
+cl <- makeCluster(n_cores)
 registerDoParallel(cl)
 
 
@@ -60,44 +60,44 @@ registerDoParallel(cl)
 # -------------------------------------------
 
 results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
-    scenario_output <- run_model(
-      n_patches        = patches,
-      pop_patches      = pop_patches,
-      n_per_patch      = n_per_patch,
-      n_loci           = n_loci,
-      init_frequency   = init_frequency,
-      fecundity        = fecundity,
-      carrying_capacity= carrying_capacity,
-      decay            = decay,
-      lambda           = lambda,
-      lethal_effect    = params$lethal_effect,
+  scenario_output <- run_model(
+    n_patches        = patches,
+    pop_patches      = pop_patches,
+    n_per_patch      = n_per_patch,
+    n_loci           = n_loci,
+    init_frequency   = init_frequency,
+    fecundity        = fecundity,
+    carrying_capacity= carrying_capacity,
+    decay            = decay,
+    lambda           = lambda,
+    lethal_effect    = params$lethal_effect,
+    complete_sterile = params$complete_sterile,
+    linkage = TRUE,
+    sim_years        = sim_years,
+    adjacency_matrix = TRUE,
+    dispersal_frac   = dispersal_frac
+  )
+  
+  
+  # --- Add scenario + replicate details ---
+  patch_stats <- scenario_output$patch_stats %>%
+    mutate(
+      scenario       = params$scenario,
+      replicate      = rep,
       complete_sterile = params$complete_sterile,
-      linkage = TRUE,
-      sim_years        = sim_years,
-      adjacency_matrix = TRUE,
-      dispersal_frac   = dispersal_frac
+      lethal_effect    = params$lethal_effect
     )
-    
-    
-    # --- Add scenario + replicate details ---
-    patch_stats <- scenario_output$patch_stats %>%
-      mutate(
-        scenario       = params$scenario,
-        replicate      = rep,
-        complete_sterile = params$complete_sterile,
-        lethal_effect    = params$lethal_effect
-      )
-    
-    genetic_stats <- scenario_output$genetic_data %>%
-      mutate(
-        scenario       = params$scenario,
-        replicate      = rep,
-        complete_sterile = params$complete_sterile,
-        lethal_effect    = params$lethal_effect
-      )
-    
-    list(patch = patch_stats, genet = genetic_stats)
-  }
+  
+  genetic_stats <- scenario_output$genetic_data %>%
+    mutate(
+      scenario       = params$scenario,
+      replicate      = rep,
+      complete_sterile = params$complete_sterile,
+      lethal_effect    = params$lethal_effect
+    )
+  
+  list(patch = patch_stats, genet = genetic_stats)
+}
 
 stopCluster(cl)
 
