@@ -1,13 +1,13 @@
 #!/bin/bash
 
 #SBATCH --account=pawsey1163
-#SBATCH --job-name=step_stone  # Name of the job
+#SBATCH --job-name=step_stone1kloci  # Name of the job
 #SBATCH --partition=work
 #SBATCH --nodes=1
 #SBATCH --ntasks=1                # Number of tasks (use 1 for a serial R job)
-#SBATCH --cpus-per-task=32        # Number of CPUs per task
+#SBATCH --cpus-per-task=8        # Number of CPUs per task
 #SBATCH --time=20:00:00           # Maximum wall-clock time (HH:MM:SS)
-#SBATCH --array=1-4               # run 1000 parameter sets in parallel
+#SBATCH --array=1-3               # run 1000 parameter sets in parallel
 #SBATCH --mem-per-cpu=4G          # Memory requested per node
 #SBATCH --output=r_job_%j.out     # Standard output file
 #SBATCH --error=r_job_%j.err      # Standard error file
@@ -22,5 +22,5 @@ module load r/4.4.1
 cd $MYSOFTWARE/IBM_generic/R
 
 # This execute the R script using Rscript
-Rscript run_single.rep.R
-
+ 
+Rscript run_single_rep.R ${SLURM_ARRAY_TASK_ID}
