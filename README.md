@@ -1,2 +1,2 @@
 # IBM_generic
-An IBM to simulate a generic invasive population with genetic load
+An individual-based model (IBM) that simulates the demographic and genetic dynamics of a generic species during spatial invasion. The model is used to investigate how genetic load influences invasion success, spread rate, and population establishment.
