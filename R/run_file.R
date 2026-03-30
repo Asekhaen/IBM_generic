@@ -17,32 +17,32 @@
 # Set working directory to sourced file
 
 
-# source("dependencies.R")
-# 
-# 
-# 
-# # -----------------------------
-# #  Single run
-# # -----------------------------
-# 
-# 
-# results <- run_model (
-#   patches = patches,
-#   pop_patches,
-#   n_per_patch = n_per_patch,
-#   n_loci = n_loci,
-#   init_frequency = init_frequency,
-#   fecundity = fecundity,
-#   carrying_capacity = carrying_capacity,
-#   decay = decay,
-#   lambda = lambda,
-#   lethal_effect = FALSE,
-#   complete_sterile = FALSE,
-#   linkage = FALSE,
-#   sim_years = sim_years,
-#   adjacency_matrix = TRUE,
-#   dispersal_frac = dispersal_frac
-# )
+source("R/dependencies.R")
+
+
+
+# -----------------------------
+#  Single run
+# -----------------------------
+
+
+results <- run_model (
+  patches = patches,
+  pop_patches,
+  n_per_patch = n_per_patch,
+  n_loci = n_loci,
+  init_frequency = init_frequency,
+  fecundity = fecundity,
+  carrying_capacity = carrying_capacity,
+  decay = decay,
+  lambda = lambda,
+  lethal_effect = FALSE,
+  complete_sterile = TRUE,
+  linkage = FALSE,
+  sim_years = sim_years,
+  adjacency_matrix = TRUE,
+  dispersal_frac = dispersal_frac
+)
 
 
 
@@ -54,40 +54,44 @@
 # generating the parameter range manually with expand.grid
 # ----------------------------------------------------------
 
-source("dependencies.R")
+source("R/dependencies.R")
 
 
 param_set <- expand.grid(
-  #dispersal_frac = c(0.001, 0.0025, 0.005, 0.01),
-  # init_frequency = c(0.01, 0.025, 0.05, 0.1),
+  dispersal_frac = c(0.001, 0.0025, 0.005, 0.01),
+  # n_load = c(0.01, 0.025, 0.05, 0.1, 0.25, 0.5),
   # n_loci = c(1, 10, 100, 1000),
   lethal_effect = c(TRUE, FALSE),
   complete_sterile = c(TRUE, FALSE)
 ) |>
   mutate(
-    scenario = row_number()
+    scenario = row_number(),
+    init_freq = calc_q(n_load,n_loci)
   )
 
-# param_set <- param_set [-(1:16),]
+param_set <- param_set [-(1:4),]
 
-param_set <- param_set [-(1),]
+# param_set <- param_set [-(1),]
 
+if (!dir.exists("R/output")) dir.create("R/output")
+write_csv(param_set, file = "R/output/param_two_patch.csv")
 
-write_csv(param_set, file = "output/param_set.csv")
 
 all_patch_stats <- list()
 all_genetic_data <- list()
 
 for (i in 1:nrow(param_set)) {
+
   cat("Running parameter set:", param_set$scenario[i], "\n")
+  
   for (rep in 1:n_replicates) {
 
     scenario_output <- run_model (
       patches = patches,
       pop_patches,
       n_per_patch = n_per_patch,
-      n_loci = n_loci,
-      init_frequency = init_frequency,
+      n_loci = n_loci, # param_set$n_loci[i],
+      init_frequency = param_set$init_freq[i],
       fecundity = fecundity,
       carrying_capacity = carrying_capacity,
       #decay = decay,
@@ -97,30 +101,34 @@ for (i in 1:nrow(param_set)) {
       linkage = FALSE,
       sim_years = sim_years,
       adjacency_matrix = TRUE,
-      dispersal_frac = dispersal_frac
+      dispersal_frac = param_set$dispersal_frac[i]
     )
 
     # --- Add scenario + replicate details ---
     patch_stats <- scenario_output$patch_stats |>
       mutate(
         scenario       = param_set$scenario[i],
-        replicate      = rep
-        # n_loci = param_set$n_loci[i],
-        #dispersal_frac = param_set$dispersal_frac[i],
-        # init_frequency = param_set$init_frequency[i]
+        replicate      = rep,
+        lethal_effect = param_set$lethal_effect[i],
+        complete_sterile = param_set$complete_sterile[i],
+        #n_loci = param_set$n_loci[i],
+        #n_load = param_set$n_load[i],
+        #init_frequency = param_set$init_freq[i]
+        dispersal_frac = param_set$dispersal_frac[i]
       )
 
     genetic_stats <- scenario_output$genetic_data |>
       mutate(
         scenario       = param_set$scenario[i],
-        replicate      = rep
-        # lethal_effect = param_set$lethal_effect[i],
-        # n_loci = param_set$n_loci[i],
-        #dispersal_frac = param_set$dispersal_frac[i],
-        # init_frequency = param_set$init_frequency[i]
+        replicate      = rep,
+        lethal_effect = param_set$lethal_effect[i],
+        complete_sterile = param_set$complete_sterile[i],
+        #n_loci = param_set$n_loci[i],
+        # n_load = param_set$n_load[i],
+        # init_frequency = param_set$init_freq[i],
+        dispersal_frac = param_set$dispersal_frac[i]
       )
 
-    # Append to collectors
     all_patch_stats <- append(all_patch_stats, list(patch_stats))
     all_genetic_data <- append(all_genetic_data, list(genetic_stats))
   }
@@ -141,9 +149,9 @@ all_genetic_data <- bind_rows(all_genetic_data)
 # save bound outputs
 # -----------------------------
 
-if (!dir.exists("output")) dir.create("output")
-saveRDS(all_patch_stats, file = file.path("output", "step_data2.rds"))
-saveRDS(all_genetic_data, file = file.path("output", "step_genetic2.rds"))
+if (!dir.exists("R/output")) dir.create("R/output")
+saveRDS(all_patch_stats, file = file.path("R/output", "step_data.rds"))
+saveRDS(all_genetic_data, file = file.path("R/output", "step_genetic.rds"))
 
 cat("Binding completed! Output saved", "\n")
 

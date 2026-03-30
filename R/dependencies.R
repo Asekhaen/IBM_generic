@@ -33,10 +33,10 @@
 
 
 # functions, helper functions and parameters 
-source("sub_functions.R")
-source("main_function.R")
+source("R/sub_functions.R")
+source("R/main_function.R")
 #source("main_function_drive_design.R")
-source("parameters_generic.R")
+source("R/parameters_generic.R")
 
 packages <- c("ggplot2", 
               "dplyr",

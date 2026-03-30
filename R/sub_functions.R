@@ -159,3 +159,18 @@ create_dispersal_matrix <- function(patches, lambda, dispersal_frac, adjacency_m
   }
   return(dispersal_matrix)
 }
+
+
+
+#calculate deleterious allele frequency from load
+calc_q <- function(load, loci) {
+sqrt(1 - (1 - load)^(1 / loci))
+}
+
+# #calculate genetic load from allele frequency
+# genetic_load <- function(q, l){
+#   L <- 1 - (1 - q^2)^l
+#   return(L)
+# }
+
+
