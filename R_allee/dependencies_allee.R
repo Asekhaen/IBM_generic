@@ -33,10 +33,9 @@
 
 
 # functions, helper functions and parameters 
-source("R/sub_functions.R")
-source("R/main_function.R")
-#source("main_function_drive_design.R")
-source("R/parameters_generic.R")
+source("R_allee//sub_functions_allee.R")
+source("R_allee/parameters_allee.R")
+source("R_allee/function_allee.R")
 
 packages <- c("ggplot2", 
               "dplyr",
@@ -46,23 +45,14 @@ packages <- c("ggplot2",
               "purrr",       # uses pmap to loop through different scenarios
               "lhs",
               "doParallel",
-              "parallel",
-              "foreach",
-              #"igraph",
               #"furrr",       # multisession i.e. distribute work across many cores
               #"progressr",
-              "patchwork",
-              "lme4",
-              "lmerTest",
+              #"patchwork",
               #"sensitivity",
               #"rsm",
               #"randomForest",
               #"ranger",
               "data.table")   # shows the progress
-
-library(lme4)
-library(lmerTest)
-library(data.table)
 
 
 load_libraries(packages)

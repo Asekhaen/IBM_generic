@@ -2,27 +2,21 @@
 # load libraries needed
 
 
-###########################################
-#               PARAMETERS                #
-###########################################
-
 #set.seed(230)
 
 
 ###########################################
-#
-#            RUN SINGLE SIMULATION
-#
+#      RUNNING SINGLE SIMULATION
 ###########################################
-# Set working directory to sourced file
 
+# load source file. This include the main and sub models, and the parameter values
 
 source("R/dependencies.R")
 
 
 
 # -----------------------------
-#  Single run
+#  Single simulation. 
 # -----------------------------
 
 
@@ -46,13 +40,15 @@ results <- run_model (
 
 
 
+
+#The results is a list that tracks the population dynamics and the genetic stats
+
+
+
 # ------------------------------------------------------
 #  multiple runs, varying parameters and replicates
 # ---------------------------------------------------
 
-# -----------------------------------------------------------
-# generating the parameter range manually with expand.grid
-# ----------------------------------------------------------
 
 source("R/dependencies.R")
 
@@ -69,14 +65,19 @@ param_set <- expand.grid(
     init_freq = calc_q(n_load,n_loci)
   )
 
+
+#this line of code is used to remove lethal_effect = TRUE and complete_sterile = TRUE
+#can be modified
+
 param_set <- param_set [-(1:4),]
 
-# param_set <- param_set [-(1),]
+
+#create folder to save outputs if it doesn't exist
 
 if (!dir.exists("R/output")) dir.create("R/output")
 write_csv(param_set, file = "R/output/param_two_patch.csv")
 
-
+#run multiple simulations
 all_patch_stats <- list()
 all_genetic_data <- list()
 
@@ -146,7 +147,8 @@ all_patch_stats <- bind_rows(all_patch_stats)
 all_genetic_data <- bind_rows(all_genetic_data)
 
 # -----------------------------
-# save bound outputs
+# save bound outputs. This saves the population dynamics = all_patch_stats 
+# and genetics data = all_genetic_data
 # -----------------------------
 
 if (!dir.exists("R/output")) dir.create("R/output")
@@ -156,12 +158,4 @@ saveRDS(all_genetic_data, file = file.path("R/output", "step_genetic.rds"))
 cat("Binding completed! Output saved", "\n")
 
 
-
-# two_patch_data <- split(two_patch_data, two_patch_data$scenario)
-# two_genetic_data <- split(two_genetic, two_genetic$scenario)
-#
-# if (!dir.exists("step")) dir.create("step")
-# saveRDS(step_stone_param, file ="output/step/step_stone_param.rds" )
-# saveRDS(two_patch_data, file ="step/two_patch_data.rds" )
-# saveRDS(two_genetic_data, file ="step/two_genetic_data.rds" )
 

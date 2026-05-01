@@ -23,4 +23,4 @@ cd $MYSOFTWARE/IBM_generic/R
 
 # This execute the R script using Rscript
  
-Rscript run_single_rep.R ${SLURM_ARRAY_TASK_ID}
+Rscript run_single_rep.R #${SLURM_ARRAY_TASK_ID}
