@@ -1,117 +1,250 @@
-
-# load libraries needed
+###########################################
+#           SETONIX READY SCRIPT
+###########################################
 
 
 ###########################################
-#               PARAMETERS                #
+#        SOURCE DEPENDENCIES
 ###########################################
-
-set.seed(230)
-
-
-###########################################
-#            
-#            RUN SINGLE SIMULATION      
-#                   
-###########################################
-# Set working directory to sourced file
-
 
 source("dependencies.R")
 
-# -----------------------------
-# Read environment variable from SLURM
-# -----------------------------
+###########################################
+#        READ SLURM ARRAY ID
+###########################################
+
 args <- commandArgs(trailingOnly = TRUE)
 task_id <- ifelse(length(args) > 0, as.numeric(args[1]), 1)
-cat("Running task ID:", task_id, "\n")
 
+cat("Running SLURM task ID:", task_id, "\n")
 
-
-# -----------------------------------------------------------
-# generating the parameter range manually with expand.grid
-# ----------------------------------------------------------
+###########################################
+#        DEFINE PARAMETER GRID
+###########################################
 
 param_set <- expand.grid(
-  #dispersal_prob = c(0.001, 0.0025, 0.005, 0.01, 0.025, 0.05),
-  lethal_effect = c(TRUE, FALSE),
+  lethal_effect    = c(TRUE, FALSE),
   complete_sterile = c(TRUE, FALSE)
 ) %>%
-  mutate(
-    scenario = row_number()
-  )
+  mutate(scenario = row_number())
 
+# Remove first combination if needed
+param_set <- param_set[-1, ]
 
-# Get parameter set for this SLURM job
+# Safety check
+if (task_id > nrow(param_set)) {
+  stop("SLURM task_id exceeds number of scenarios.")
+}
+
 params <- param_set[task_id, ]
 
+###########################################
+#        SET SCENARIO-SPECIFIC SEED
+###########################################
 
-# -----------------------------------------
-# Parallel backend setup (for replicates)
-# -------------------------------------------
+set.seed(1000 + task_id)
+
+###########################################
+#        SETUP PARALLEL BACKEND
+###########################################
 
 n_cores <- as.numeric(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
+cat("Using cores:", n_cores, "\n")
+
 cl <- makeCluster(n_cores)
 registerDoParallel(cl)
 
+###########################################
+#        RUN REPLICATES IN PARALLEL
+###########################################
 
-# -----------------------------------------------
-# Run model replicates in parallel
-# -------------------------------------------
-
-results <- foreach(rep = 1:n_replicates, .packages = c("dplyr")) %dopar% {
+results <- foreach(
+  rep = 1:n_replicates,
+  .packages = c("dplyr"),
+  .combine = "c"
+) %dopar% {
+  
+  # Independent replicate seed
+  set.seed(100000 * task_id + rep)
+  
   scenario_output <- run_model(
-    n_patches        = patches,
-    pop_patches      = pop_patches,
-    n_per_patch      = n_per_patch,
-    n_loci           = n_loci,
-    init_frequency   = init_frequency,
-    fecundity        = fecundity,
-    carrying_capacity= carrying_capacity,
-    decay            = decay,
-    lambda           = lambda,
-    lethal_effect    = params$lethal_effect,
-    complete_sterile = params$complete_sterile,
-    linkage = TRUE,
-    sim_years        = sim_years,
-    adjacency_matrix = TRUE,
-    dispersal_frac   = dispersal_frac
+    n_patches         = patches,
+    pop_patches       = pop_patches,
+    n_per_patch       = n_per_patch,
+    n_loci            = n_loci,
+    init_frequency    = init_frequency,
+    fecundity         = fecundity,
+    carrying_capacity = carrying_capacity,
+    decay             = decay,
+    lambda            = lambda,
+    lethal_effect     = params$lethal_effect,
+    complete_sterile  = params$complete_sterile,
+    linkage           = FALSE,
+    sim_years         = sim_years,
+    adjacency_matrix  = TRUE,
+    dispersal_frac    = dispersal_frac
   )
   
-  
-  # --- Add scenario + replicate details ---
   patch_stats <- scenario_output$patch_stats %>%
     mutate(
-      scenario       = params$scenario,
-      replicate      = rep,
-      complete_sterile = params$complete_sterile,
-      lethal_effect    = params$lethal_effect
+      scenario         = params$scenario,
+      replicate        = rep,
+      lethal_effect    = params$lethal_effect,
+      complete_sterile = params$complete_sterile
     )
   
   genetic_stats <- scenario_output$genetic_data %>%
     mutate(
-      scenario       = params$scenario,
-      replicate      = rep,
-      complete_sterile = params$complete_sterile,
-      lethal_effect    = params$lethal_effect
+      scenario         = params$scenario,
+      replicate        = rep,
+      lethal_effect    = params$lethal_effect,
+      complete_sterile = params$complete_sterile
     )
   
-  list(patch = patch_stats, genet = genetic_stats)
+  list(
+    patch   = patch_stats,
+    genetic = genetic_stats
+  )
 }
 
 stopCluster(cl)
 
-cat("Runs completed!", "\n")
+cat("Parallel runs completed.\n")
 
+###########################################
+#        BIND OUTPUT
+###########################################
 
-# -----------------------------
-# bind and save final outputs
-# -----------------------------
+all_patch_stats  <- bind_rows(lapply(results, `[[`, "patch"))
+all_genetic_data <- bind_rows(lapply(results, `[[`, "genetic"))
 
-all_patch_stats <- bind_rows(lapply(results, `[[`, "patch"))
-all_genetic_stats <- bind_rows(lapply(results, `[[`, "genet"))
+###########################################
+#        SAVE OUTPUT (SCENARIO-SPECIFIC)
+###########################################
 
 if (!dir.exists("output")) dir.create("output")
 
-saveRDS(all_patch_stats, file = sprintf("output/scenario_%03d_patch.rds", params$scenario))
-saveRDS(all_genetic_stats, file = sprintf("output/scenario_%03d_allele.rds", params$scenario))
+saveRDS(
+  all_patch_stats,
+  file = file.path("output",
+                   paste0("patch_scenario_", task_id, ".rds"))
+)
+
+saveRDS(
+  all_genetic_data,
+  file = file.path("output",
+                   paste0("genetic_scenario_", task_id, ".rds"))
+)
+
+cat("Output saved successfully for scenario", task_id, "\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+# #OR
+# 
+# 
+# 
+# 
+# ###########################################
+# #               PARAMETERS
+# ###########################################
+# 
+# set.seed(230)
+# source("dependencies.R")
+# 
+# ###########################################
+# # Read SLURM array task ID
+# ###########################################
+# 
+# task_id <- as.numeric(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
+# cat("Running SLURM task ID:", task_id, "\n")
+# 
+# ###########################################
+# # Parameter combinations
+# ###########################################
+# 
+# param_set <- expand.grid(
+#   lethal_effect   = c(TRUE, FALSE),
+#   complete_sterile = c(TRUE, FALSE)
+# ) %>%
+#   mutate(scenario = row_number())
+# 
+# param_set <- param_set[-1, ]
+# 
+# params <- param_set[task_id, ]
+# 
+# ###########################################
+# # Run replicates sequentially
+# ###########################################
+# 
+# all_patch_stats  <- list()
+# all_genetic_data <- list()
+# 
+# for (rep in 1:n_replicates) {
+#   
+#   scenario_output <- run_model(
+#     n_patches        = patches,
+#     pop_patches      = pop_patches,
+#     n_per_patch      = n_per_patch,
+#     n_loci           = n_loci,
+#     init_frequency   = init_frequency,
+#     fecundity        = fecundity,
+#     carrying_capacity= carrying_capacity,
+#     decay            = decay,
+#     lambda           = lambda,
+#     lethal_effect    = params$lethal_effect,
+#     complete_sterile = params$complete_sterile,
+#     linkage          = FALSE,
+#     sim_years        = sim_years,
+#     adjacency_matrix = TRUE,
+#     dispersal_frac   = dispersal_frac
+#   )
+#   
+#   patch_stats <- scenario_output$patch_stats %>%
+#     mutate(
+#       scenario        = params$scenario,
+#       replicate       = rep,
+#       complete_sterile = params$complete_sterile,
+#       lethal_effect    = params$lethal_effect
+#     )
+#   
+#   genetic_stats <- scenario_output$genetic_data %>%
+#     mutate(
+#       scenario        = params$scenario,
+#       replicate       = rep,
+#       complete_sterile = params$complete_sterile,
+#       lethal_effect    = params$lethal_effect
+#     )
+#   
+#   all_patch_stats[[rep]]  <- patch_stats
+#   all_genetic_data[[rep]] <- genetic_stats
+# }
+# 
+# ###########################################
+# # Bind and save (unique filenames!)
+# ###########################################
+# 
+# all_patch_stats  <- dplyr::bind_rows(all_patch_stats)
+# all_genetic_data <- dplyr::bind_rows(all_genetic_data)
+# 
+# if (!dir.exists("output")) dir.create("output")
+# 
+# saveRDS(all_patch_stats,
+#         file = file.path("output",
+#                          paste0("patch_scenario_", task_id, ".rds")))
+# 
+# saveRDS(all_genetic_data,
+#         file = file.path("output",
+#                          paste0("genetic_scenario_", task_id, ".rds")))
+# 
+# cat("Task", task_id, "completed successfully!\n")

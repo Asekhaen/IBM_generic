@@ -40,7 +40,7 @@ growth <- function(pop_patches,
                    linkage,
                    sim_years) {
   #browser()
-  #if(sim_years == 10) browser()
+  #if(sim_years == 4) browser()
   updated_pop_patches <- list()
   for (i in seq_along(pop_patches)) {
     pop <- pop_patches[[i]]  
@@ -61,8 +61,10 @@ growth <- function(pop_patches,
       homo_del <- as.numeric(!homozygous)
       n_homo <- sum(homo_del == 0)
       n_individual <- length(homo_del)
+      
 
       
+      # sterile effect of homozygous deleterious alleles
       if (complete_sterile) {
 
         n_offspring <- act_fecundity * homo_del
@@ -125,7 +127,7 @@ growth <- function(pop_patches,
          which_allele_mate <- matrix(rbinom(total_offspring * n_loci, 1, 0.5),
                                      nrow = total_offspring, ncol = n_loci)
 
-         # Offspring tibble
+         # Dataframe for Offspring
          offspring <- tibble(
            allele1 = ifelse(which_allele_ind,
                             ind_germline$allele1,
@@ -142,17 +144,11 @@ growth <- function(pop_patches,
        
        
        if (lethal_effect){
-         #update data for genetic load estimation 
-         n_pop <- nrow(offspring)
-         exp_fecundity <- bev_holt(n_pop, fecundity, carrying_capacity)
-         act_fecundity <- rpois(n_pop, exp_fecundity) 
-
          homozygous_lethal <- (offspring$allele1 == 1) & (offspring$allele2 == 1)
          any_homozygous <- rowSums(homozygous_lethal) > 0
-         any_homozygous_del <- as.numeric(!any_homozygous)
-         n_homo_del <- sum(any_homozygous_del == 0)
-         n_individual <- length(any_homozygous_del)
-         n_offspring <- act_fecundity * any_homozygous_del
+         # any_homozygous_del <- as.numeric(!any_homozygous)
+         # n_homo_del <- sum(any_homozygous_del == 0)
+         # n_individual <- length(any_homozygous_del)
          offspring <- offspring[!any_homozygous,]
     
        }
@@ -329,7 +325,7 @@ run_model <- function(patches,
 
     # patches occupied
     curr_pop_size <- sapply(pop, nrow)
-    occupied <- sum(curr_pop_size >= establish_threshold)
+    occupied <- sum(curr_pop_size >= colonisation_threshold)
     
     #time for population to reach half K (carrying capapcity)
     time_halfK[is.na(time_halfK) & curr_pop_size >= half_K] <- year
