@@ -34,8 +34,7 @@
 
 # functions, helper functions and parameters 
 source("R/sub_functions.R")
-source("R/main_function.R")
-#source("main_function_drive_design.R")
+
 source("R/parameters_generic.R")
 
 packages <- c("ggplot2", 
@@ -52,17 +51,15 @@ packages <- c("ggplot2",
               #"furrr",       # multisession i.e. distribute work across many cores
               #"progressr",
               "patchwork",
-              "lme4",
-              "lmerTest",
+              # "lme4",
+              # "lmerTest",
               #"sensitivity",
               #"rsm",
               #"randomForest",
               #"ranger",
               "data.table")   # shows the progress
 
-library(lme4)
-library(lmerTest)
-library(data.table)
-
-
 load_libraries(packages)
+source("R/main_function.R")
+#source("main_function_drive_design.R")
+

@@ -24,6 +24,8 @@ ini_pop <- function(patches, n_per_patch, n_loci, init_frequency) {
   return(patches_pop)
 }  
 
+pop <- ini_pop(patches, n_per_patch, n_loci, init_frequency)
+
 # ===============================================
 # REPRODUCTION AND GENETIC INHERITANCE  
 # ===============================================
@@ -39,8 +41,8 @@ growth <- function(pop_patches,
                    complete_sterile,
                    linkage,
                    sim_years) {
-  #browser()
-  #if(sim_years == 4) browser()
+  # browser()
+  # if(sim_years == 1) browser()
   updated_pop_patches <- list()
   for (i in seq_along(pop_patches)) {
     pop <- pop_patches[[i]]  
@@ -48,7 +50,7 @@ growth <- function(pop_patches,
     # reproduction  
     n.pop <- nrow(pop)
     
-    if (n.pop > 0){
+    if (n.pop >= 2){
       
       
       # # exp_fecundity <- fec_dd(n.pop, dd_rate, prob_survival)
@@ -56,29 +58,27 @@ growth <- function(pop_patches,
 
       exp_fecundity <- bev_holt(n.pop, fecundity, carrying_capacity)
       act_fecundity <- rpois(n.pop, exp_fecundity)
-
-      homozygous <- rowSums((pop$allele1 + pop$allele2) == 2) 
-      homo_del <- as.numeric(!homozygous)
-      n_homo <- sum(homo_del == 0)
-      n_individual <- length(homo_del)
       
-
+      # obligate outcrossing: each individual draws one mate uniformly from the other
+      # n.pop - 1 individuals (random offset 1..n.pop-1 around the index, so self is never chosen)
+      selected_mate_idx <- ((seq_len(n.pop) - 1 +
+                               sample.int(n.pop - 1, n.pop, replace = TRUE)) %% n.pop) + 1
+      
+      # sterile = homozygous for the deleterious allele at >= 1 locus
+      sterile <- rowSums((pop$allele1 + pop$allele2) == 2) > 0
       
       # sterile effect of homozygous deleterious alleles
       if (complete_sterile) {
-
+        homo_del <- as.numeric(!(sterile | sterile[selected_mate_idx]))
         n_offspring <- act_fecundity * homo_del
-      
-        # genetic load estimation based on proportion homozygous/del. alleles
       }  else {
         n_offspring <- act_fecundity
       }
       
     }   else {
-      # If not, set offspring count to 0
+      # 0 or 1 individual: no mate available, so no reproduction (obligate outcrossing)
       n_offspring <- rep(0, n.pop)
     }
-    
     
      total_offspring <- sum(n_offspring)
      
@@ -86,9 +86,9 @@ growth <- function(pop_patches,
  # GENETIC INHERITANCE
  # function with option to choose between inheritance type (linkage and without linkage)
 
-     if (total_offspring > 0){
+     if (total_offspring > 0 && n.pop >= 2){   # mates need at least 2 individuals
        
-       selected_mate_idx <- sample(n.pop, n.pop, replace = TRUE)
+       # attach each individual's mate genotype (mates drawn above)
        selected_mate <- pop[selected_mate_idx,]
        pop$mate_allele1 <- selected_mate$allele1
        pop$mate_allele2 <- selected_mate$allele2
@@ -188,7 +188,9 @@ dispersal <- function(pop, patches, lambda, dispersal_frac, adjacency_matrix, ch
   for (i in seq_len(patches)) {
     dispersed_pop[[i]] <- pop[[i]][0, ]
   }
-
+  # flows[i, j] = number of individuals moving from patch i to patch j (diagonal = stayers)
+  flows <- matrix(0L, patches, patches)
+  
   # extract individual from each patch and skip if there are no individual in the patch
   for (i in seq_along(pop)) {
     patch <- pop[[i]]
@@ -211,6 +213,7 @@ dispersal <- function(pop, patches, lambda, dispersal_frac, adjacency_matrix, ch
       replace = TRUE,
       prob = probs
     )
+    flows[i, ] <- tabulate(destinations, nbins = patches)
     
     # bind individuals that moved to their destinbtion patch
     for (j in seq_len(patches)) {
@@ -228,8 +231,8 @@ dispersal <- function(pop, patches, lambda, dispersal_frac, adjacency_matrix, ch
     )
   }
   
-  dispersed_pop
-}
+  list(pop = dispersed_pop, flows = flows)
+  }
 
 #================================ 
 # SIMULATION FUNCTION  
@@ -259,6 +262,12 @@ run_model <- function(patches,
   time_halfK <- rep(NA, patches)
   dispersal_kernel <- matrix()
   
+  # propagule supply / establishment tracking
+  time_colonised        <- rep(NA_integer_, patches) # first year N >= colonisation_threshold (arrival time)
+  cum_emigrants         <- rep(0, patches)           # cumulative individuals that left each patch
+  cum_immigrants        <- rep(0, patches)           # cumulative individuals that arrived in each patch
+  immigrants_to_arrival <- rep(NA_real_, patches)    # cumulative immigrants up to and including arrival year
+  
   for (year in 1:sim_years) {
     #browser()
     cat("year", year, "Underway \n")
@@ -278,6 +287,9 @@ run_model <- function(patches,
     
     pop <- grown_pop$updated_pop_patches
 
+    # S_t: surviving offspring per patch before dispersal (after lethal removal)
+    post_repro_size <- sapply(pop, nrow)
+    
     #if (nrow(pop[[patches]]) > carrying_capacity/2) {
     #  break
     #}
@@ -303,6 +315,11 @@ run_model <- function(patches,
       freq_a <- ifelse(deleterious_count > 0, deleterious_count / total_alleles, 0)
       freq_A <- ifelse(wild_count > 0, wild_count / total_alleles, 0)
       
+      # genetic load (Eq. 4a): proportion of individuals homozygous deleterious at >= 1 locus
+      realised_load <- if (n_ind > 0) mean(rowSums(genotype_sum == 2) > 0) else NA_real_
+      # expected load under HWE and independent loci (Eq. 4), for comparison
+      hwe_load <- if (n_ind > 0) 1 - prod(1 - freq_a^2) else NA_real_
+      
       tibble::tibble(
         patch = patch_id,
         year  = year,
@@ -311,18 +328,29 @@ run_model <- function(patches,
         Aa = Aa_count,
         aa = aa_count,
         freq_A = freq_A,
-        freq_a = freq_a
+        freq_a = freq_a,
+        n_ind = n_ind,
+        realised_load = realised_load,
+        hwe_load = hwe_load
       )
     })
     
     #Dispersal
-    pop <- dispersal(pop,
+    disp <- dispersal(pop,
                      patches,
                      lambda,
                      dispersal_frac,
                      adjacency_matrix,
                      check = FALSE)
 
+    pop <- disp$pop
+    
+    # migration flows: emigrants left patch i, immigrants arrived in patch j
+    emigrants  <- rowSums(disp$flows) - diag(disp$flows)
+    immigrants <- colSums(disp$flows) - diag(disp$flows)
+    cum_emigrants  <- cum_emigrants + emigrants
+    cum_immigrants <- cum_immigrants + immigrants
+    
     # patches occupied
     curr_pop_size <- sapply(pop, nrow)
     occupied <- sum(curr_pop_size >= colonisation_threshold)
@@ -330,21 +358,48 @@ run_model <- function(patches,
     #time for population to reach half K (carrying capapcity)
     time_halfK[is.na(time_halfK) & curr_pop_size >= half_K] <- year
     
+    # arrival time and the immigrant pressure needed to reach it
+    newly_colonised <- is.na(time_colonised) & curr_pop_size >= colonisation_threshold
+    time_colonised[newly_colonised]        <- year
+    immigrants_to_arrival[newly_colonised] <- cum_immigrants[newly_colonised]
     
-    # growth rate 
-    growth_rate <- ifelse(prev_pop_size > 0,
-                          ((curr_pop_size - prev_pop_size) / prev_pop_size),
-                          0)
+    # growth rate (Eq. 5): local = reproduction only (S_t vs N_t, before dispersal);
+    # net = includes migration. Undefined (NA) for empty patches
+    local_growth <- ifelse(prev_pop_size > 0,
+                           (post_repro_size - prev_pop_size) / prev_pop_size,
+                           NA_real_)
+    net_growth <- ifelse(prev_pop_size > 0,
+                         (curr_pop_size - prev_pop_size) / prev_pop_size,
+                         NA_real_)
+    
+    # genetic deficit in propagule output: realised emigrants / emigrants expected
+    # with no genetic effect (m * N_t * A_t). ~1 without load, < 1 when load suppresses output
+    expected_emigrants <- dispersal_frac * prev_pop_size *
+      bev_holt(prev_pop_size, fecundity, carrying_capacity)
+    genetic_output_ratio <- ifelse(expected_emigrants > 0,
+                                   emigrants / expected_emigrants,
+                                   NA_real_)
     
     # Track population statistics 
       patch_stats[[year]] <- tibble(
       year = year,
       patch = seq_along(pop),
-      pop_size = curr_pop_size,
+      start_size = prev_pop_size,             # N_t
+      post_repro_size = post_repro_size,      # S_t
+      pop_size = curr_pop_size,               # N_{t+1} (after dispersal)
       time_half_K = time_halfK,
-      g_rate =  growth_rate,
+      g_rate = local_growth,
+      g_rate_net = net_growth,
+      emigrants = emigrants,
+      immigrants = immigrants,
+      cum_emigrants = cum_emigrants,
+      cum_immigrants = cum_immigrants,
+      expected_emigrants = expected_emigrants,
+      genetic_output_ratio = genetic_output_ratio,
+      time_colonised = time_colonised,
+      immigrants_to_arrival = immigrants_to_arrival,
       patch_occupied = occupied
-    )
+      )
   
   #bind population dynamics and genetics outputs 
   patch_stats_df <- bind_rows(patch_stats)

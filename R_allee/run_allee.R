@@ -6,7 +6,7 @@
 #               PARAMETERS                #
 ###########################################
 
-#set.seed(230)
+set.seed(250)
 
 
 ###########################################
@@ -21,7 +21,7 @@
 # source("R_allee/dependencies_allee.R")
 # 
 # 
-# 
+#  
 # # -----------------------------
 # #  Single run
 # # -----------------------------
@@ -32,12 +32,13 @@
 #   pop_patches,
 #   n_per_patch = n_per_patch,
 #   n_loci = n_loci,
+#   # n_load = n_load,
 #   init_frequency = init_frequency,
 #   fecundity = fecundity,
 #   carrying_capacity = carrying_capacity,
 #   lambda = lambda,
 #   lethal_effect = FALSE,
-#   complete_sterile = TRUE,
+#   complete_sterile = FALSE,
 #   linkage = FALSE,
 #   sim_years = sim_years
 # )
@@ -66,8 +67,10 @@ param_set <- expand.grid(
     init_freq = calc_q(n_load,n_loci)
   )
 
-param_set <- param_set [-(1:24),]
+param_set <- param_set [-(c(1:24, 74:96)),]
+# param_set <- param_set [-(1:4),]
 
+if (!dir.exists("R_allee/output")) dir.create("R_allee/output")
 write_csv(param_set, file = "R_allee/output/param_set_allee.csv")
 
 all_patch_stats <- list()
@@ -75,17 +78,18 @@ all_genetic_data <- list()
 
 for (i in 1:nrow(param_set)) {
   cat("Running parameter set:", param_set$scenario[i], "\n")
-  
+
   # cal init freq for each scenario
   # init_frequency <- calc_q(param_set$n_load[i], param_set$n_loci[i])
-  
+
   for (rep in 1:n_replicates) {
-    
+
     scenario_output <- run_model (
       patches = patches,
       # pop_patches,
       n_per_patch = n_per_patch,
       n_loci = param_set$n_loci[i],
+      # n_load = param_set$n_load[i],
       init_frequency = param_set$init_freq[i],
       fecundity = fecundity,
       carrying_capacity = carrying_capacity,
@@ -97,7 +101,7 @@ for (i in 1:nrow(param_set)) {
       sim_years = sim_years,
       adjacency_matrix = TRUE,
     )
-    
+
     # --- Add scenario + replicate details ---
     patch_stats <- scenario_output$patch_stats |>
       mutate(
@@ -108,9 +112,9 @@ for (i in 1:nrow(param_set)) {
         n_loci = param_set$n_loci[i],
         n_load = param_set$n_load[i],
         init_frequency = param_set$init_freq[i],
-        
+
       )
-    
+
     genetic_stats <- scenario_output$genetic_data |>
       mutate(
         scenario       = param_set$scenario[i],
@@ -121,7 +125,7 @@ for (i in 1:nrow(param_set)) {
         n_load = param_set$n_load[i],
         init_frequency = param_set$init_freq[i],
       )
-    
+
     # Append to collectors
     all_patch_stats <- append(all_patch_stats, list(patch_stats))
     all_genetic_data <- append(all_genetic_data, list(genetic_stats))
@@ -144,7 +148,7 @@ all_genetic_data <- bind_rows(all_genetic_data)
 # -----------------------------
 
 if (!dir.exists("R_allee/output")) dir.create("R_allee/output")
-saveRDS(all_patch_stats, file = file.path("R_allee/output", "allee_effect.rds"))
+saveRDS(all_patch_stats, file = file.path("R_allee/output", "allee_effect_pop.rds"))
 saveRDS(all_genetic_data, file = file.path("R_allee/output", "allee_genetic.rds"))
 
 cat("Binding completed! Output saved", "\n")
