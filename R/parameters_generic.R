@@ -1,7 +1,7 @@
 
 # Parameters
 fecundity <- 3                                            # Number of offspring per day per female mosquito
-patches <- 2                                             # Number of patches
+patches <- 11                                             # Number of patches
 carrying_capacity = 1000                                  # carrying capacity
 half_K <- 0.75 * carrying_capacity
 n_per_patch <- create_n_per_patch(patches, 

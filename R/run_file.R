@@ -19,7 +19,7 @@ set.seed(230)
 #  Single simulation. 
 # -----------------------------
 
-
+# 
 # results <- run_model (
 #   patches = patches,
 #   pop_patches,
@@ -52,11 +52,11 @@ set.seed(230)
 
 source("R/dependencies.R")
 
-
+#stepping stone parameters
 param_set <- expand.grid(
   dispersal_frac = c(0.001, 0.0025, 0.005, 0.01),
   # n_load = c(0.01, 0.025, 0.05, 0.1, 0.25, 0.5),
-  n_loci = c(1, 10, 100, 1000),
+  # n_loci = c(1, 10, 100, 1000),
   lethal_effect = c(TRUE, FALSE),
   complete_sterile = c(TRUE, FALSE)
 ) |>
@@ -65,12 +65,24 @@ param_set <- expand.grid(
     init_freq = calc_q(n_load,n_loci)
   )
 
+# #two_patch parameters
+# param_set <- expand.grid(
+#   # dispersal_frac = c(0.001, 0.0025, 0.005, 0.01),
+#   n_load = c(0.01, 0.025, 0.05, 0.1, 0.25, 0.5),
+#   n_loci = c(1, 10, 100, 1000),
+#   lethal_effect = c(TRUE, FALSE),
+#   complete_sterile = c(TRUE, FALSE)
+# ) |>
+#   mutate(
+#     scenario = row_number(),
+#     init_freq = calc_q(n_load,n_loci)
+#   )
 
 #this line of code is used to remove lethal_effect = TRUE and complete_sterile = TRUE
 #can be modified
 
-param_set <- param_set [-(c(1:16,53:64)),]
-# param_set <- param_set [-(1:4),]
+# param_set <- param_set [-(c(1:24, 79:96)),] #two patch  
+param_set <- param_set [-(1:4),] # stepping stone
 
 #create folder to save outputs if it doesn't exist
 
@@ -92,7 +104,7 @@ for (i in 1:nrow(param_set)) {
       patches = patches,
       pop_patches,
       n_per_patch = n_per_patch,
-      n_loci = param_set$n_loci[i],
+      n_loci = n_loci,  #param_set$n_loci[i],
       # n_load = n_load,
       init_frequency = param_set$init_freq[i],
       fecundity = fecundity,
@@ -114,7 +126,7 @@ for (i in 1:nrow(param_set)) {
         replicate      = rep,
         lethal_effect = param_set$lethal_effect[i],
         complete_sterile = param_set$complete_sterile[i],
-        n_loci = param_set$n_loci[i],
+        # n_loci = param_set$n_loci[i],
         # n_load = param_set$n_load[i],
         init_frequency = param_set$init_freq[i],
         dispersal_frac =  param_set$dispersal_frac[i]
@@ -126,7 +138,7 @@ for (i in 1:nrow(param_set)) {
         replicate      = rep,
         lethal_effect = param_set$lethal_effect[i],
         complete_sterile = param_set$complete_sterile[i],
-        n_loci = param_set$n_loci[i],
+        # n_loci = param_set$n_loci[i],
         # n_load = param_set$n_load[i],
         init_frequency = param_set$init_freq[i],
         dispersal_frac =  param_set$dispersal_frac[i]
@@ -154,10 +166,10 @@ all_genetic_data <- bind_rows(all_genetic_data)
 # -----------------------------
 
 if (!dir.exists("R/output")) dir.create("R/output")
-# saveRDS(all_patch_stats, file = file.path("R/output", "step_data.rds"))
-# saveRDS(all_genetic_data, file = file.path("R/output", "step_genetic.rds"))
-saveRDS(all_patch_stats, file = file.path("R/output", "two_patch.rds"))
-saveRDS(all_genetic_data, file = file.path("R/output", "two_genetics.rds"))
+saveRDS(all_patch_stats, file = file.path("R/output", "step_data.rds"))
+saveRDS(all_genetic_data, file = file.path("R/output", "step_genetic.rds"))
+# saveRDS(all_patch_stats, file = file.path("R/output", "two_patch.rds"))
+# saveRDS(all_genetic_data, file = file.path("R/output", "two_genetics.rds"))
 
 cat("Binding completed! Output saved", "\n")
 
