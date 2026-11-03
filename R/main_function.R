@@ -84,7 +84,6 @@ growth <- function(pop_patches,
      
     
  # GENETIC INHERITANCE
- # function with option to choose between inheritance type (linkage and without linkage)
 
      if (total_offspring > 0 && n.pop >= 2){   # mates need at least 2 individuals
        
@@ -294,32 +293,34 @@ run_model <- function(patches,
     #  break
     #}
 
-    # Track genetic stats 
+    # Track genetic stats
     genetic_data[[year]] <- lapply(seq_along(pop), function(patch_id) {
       #browser()
       patch_pop <- pop[[patch_id]]
-      allele1   <- patch_pop$allele1   
-      allele2   <- patch_pop$allele2   
+      allele1   <- patch_pop$allele1
+      allele2   <- patch_pop$allele2
       n_ind   <- nrow(allele1)
       n_loci  <- ncol(allele1)
-      
-      genotype_sum <- allele1 + allele2    
+
+      genotype_sum <- allele1 + allele2
       AA_count <- colSums(genotype_sum == 0)   # homozygous wild/normal
       Aa_count <- colSums(genotype_sum == 1)   # heterozygous recessive
       aa_count <- colSums(genotype_sum == 2)   # homozygous deleterious (the proportion of "aa" can be use as measurement for genetic load)
-      
-      
+
+
       total_alleles <- 2 * n_ind
       deleterious_count <- colSums(allele1 == 1) + colSums(allele2 == 1)
       wild_count <- total_alleles - deleterious_count
       freq_a <- ifelse(deleterious_count > 0, deleterious_count / total_alleles, 0)
       freq_A <- ifelse(wild_count > 0, wild_count / total_alleles, 0)
+
+      # # genetic load (Eq. 4a): proportion of individuals homozygous deleterious at >= 1 locus
       
-      # genetic load (Eq. 4a): proportion of individuals homozygous deleterious at >= 1 locus
-      realised_load <- if (n_ind > 0) mean(rowSums(genotype_sum == 2) > 0) else NA_real_
-      # expected load under HWE and independent loci (Eq. 4), for comparison
-      hwe_load <- if (n_ind > 0) 1 - prod(1 - freq_a^2) else NA_real_
+      # realised_load <- if (n_ind > 0) mean(rowSums(genotype_sum == 2) > 0) else NA_real_
       
+      # # expected load under HWE and independent loci (Eq. 4), for comparison
+      # hwe_load <- if (n_ind > 0) 1 - prod(1 - freq_a^2) else NA_real_
+
       tibble::tibble(
         patch = patch_id,
         year  = year,
@@ -329,9 +330,9 @@ run_model <- function(patches,
         aa = aa_count,
         freq_A = freq_A,
         freq_a = freq_a,
-        n_ind = n_ind,
-        realised_load = realised_load,
-        hwe_load = hwe_load
+        n_ind = n_ind
+        # realised_load = realised_load,
+        # hwe_load = hwe_load
       )
     })
     
@@ -348,9 +349,9 @@ run_model <- function(patches,
     # migration flows: emigrants left patch i, immigrants arrived in patch j
     emigrants  <- rowSums(disp$flows) - diag(disp$flows)
     immigrants <- colSums(disp$flows) - diag(disp$flows)
-    cum_emigrants  <- cum_emigrants + emigrants
-    cum_immigrants <- cum_immigrants + immigrants
-    
+    # cum_emigrants  <- cum_emigrants + emigrants
+    # cum_immigrants <- cum_immigrants + immigrants
+    # 
     # patches occupied
     curr_pop_size <- sapply(pop, nrow)
     occupied <- sum(curr_pop_size >= colonisation_threshold)
@@ -372,13 +373,13 @@ run_model <- function(patches,
                          (curr_pop_size - prev_pop_size) / prev_pop_size,
                          NA_real_)
     
-    # genetic deficit in propagule output: realised emigrants / emigrants expected
-    # with no genetic effect (m * N_t * A_t). ~1 without load, < 1 when load suppresses output
-    expected_emigrants <- dispersal_frac * prev_pop_size *
-      bev_holt(prev_pop_size, fecundity, carrying_capacity)
-    genetic_output_ratio <- ifelse(expected_emigrants > 0,
-                                   emigrants / expected_emigrants,
-                                   NA_real_)
+    # # genetic deficit in propagule output: realised emigrants / emigrants expected
+    # # with no genetic effect (m * N_t * A_t). ~1 without load, < 1 when load suppresses output
+    # expected_emigrants <- dispersal_frac * prev_pop_size *
+    #   bev_holt(prev_pop_size, fecundity, carrying_capacity)
+    # genetic_output_ratio <- ifelse(expected_emigrants > 0,
+    #                                emigrants / expected_emigrants,
+    #                                NA_real_)
     
     # Track population statistics 
       patch_stats[[year]] <- tibble(
@@ -392,18 +393,18 @@ run_model <- function(patches,
       g_rate_net = net_growth,
       emigrants = emigrants,
       immigrants = immigrants,
-      cum_emigrants = cum_emigrants,
-      cum_immigrants = cum_immigrants,
-      expected_emigrants = expected_emigrants,
-      genetic_output_ratio = genetic_output_ratio,
-      time_colonised = time_colonised,
-      immigrants_to_arrival = immigrants_to_arrival,
-      patch_occupied = occupied
+      # cum_emigrants = cum_emigrants,
+      # cum_immigrants = cum_immigrants,
+      # expected_emigrants = expected_emigrants,
+      # genetic_output_ratio = genetic_output_ratio,
+      time_colonised = time_colonised
+      # immigrants_to_arrival = immigrants_to_arrival,
+      # patch_occupied = occupied
       )
   
   #bind population dynamics and genetics outputs 
   patch_stats_df <- bind_rows(patch_stats)
-  genetic_data_df <- bind_rows(genetic_data)
+  # genetic_data_df <- bind_rows(genetic_data)
   }
   
   # Return the collected data

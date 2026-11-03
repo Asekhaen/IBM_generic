@@ -16,9 +16,9 @@ dispersal_frac <- 0.0025                                  # for analysis we used
 
 # Genetics: load parameters
 n_loci <- 1000                                             # for analysis use 1, 10, 100, 1000) 
-n_load <- 0.25 
+n_load <- 0.10 
 init_frequency <- calc_q(n_load, n_loci)                  # for analysis use 0.01, 0.025, 0.05, 0.1
 
-n_replicates <- 25                                        # make this 1000 replicates for the final (analysed) data set to capture more stochasticity
+n_replicates <- 10                                        # make this 1000 replicates for the final (analysed) data set to capture more stochasticity
 n_samples <- 100
 

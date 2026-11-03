@@ -92,7 +92,7 @@ write_csv(param_set, file = "R/output/step_patch.csv")
 
 #run multiple simulations
 all_patch_stats <- list()
-all_genetic_data <- list()
+# all_genetic_data <- list()
 
 for (i in 1:nrow(param_set)) {
 
@@ -132,20 +132,20 @@ for (i in 1:nrow(param_set)) {
         dispersal_frac =  param_set$dispersal_frac[i]
       )
 
-    genetic_stats <- scenario_output$genetic_data |>
-      mutate(
-        scenario       = param_set$scenario[i],
-        replicate      = rep,
-        lethal_effect = param_set$lethal_effect[i],
-        complete_sterile = param_set$complete_sterile[i],
-        # n_loci = param_set$n_loci[i],
-        # n_load = param_set$n_load[i],
-        init_frequency = param_set$init_freq[i],
-        dispersal_frac =  param_set$dispersal_frac[i]
-      )
+    # genetic_stats <- scenario_output$genetic_data |>
+    #   mutate(
+    #     scenario       = param_set$scenario[i],
+    #     replicate      = rep,
+    #     lethal_effect = param_set$lethal_effect[i],
+    #     complete_sterile = param_set$complete_sterile[i],
+    #     # n_loci = param_set$n_loci[i],
+    #     # n_load = param_set$n_load[i],
+    #     init_frequency = param_set$init_freq[i],
+    #     dispersal_frac =  param_set$dispersal_frac[i]
+    #   )
 
     all_patch_stats <- append(all_patch_stats, list(patch_stats))
-    all_genetic_data <- append(all_genetic_data, list(genetic_stats))
+    # all_genetic_data <- append(all_genetic_data, list(genetic_stats))
   }
 }
 
@@ -158,7 +158,7 @@ cat("Runs completed!", "\n")
 cat("Binding output...", "\n")
 
 all_patch_stats <- bind_rows(all_patch_stats)
-all_genetic_data <- bind_rows(all_genetic_data)
+# all_genetic_data <- bind_rows(all_genetic_data)
 
 # -----------------------------
 # save bound outputs. This saves the population dynamics = all_patch_stats
@@ -167,7 +167,7 @@ all_genetic_data <- bind_rows(all_genetic_data)
 
 if (!dir.exists("R/output")) dir.create("R/output")
 saveRDS(all_patch_stats, file = file.path("R/output", "step_data.rds"))
-saveRDS(all_genetic_data, file = file.path("R/output", "step_genetic.rds"))
+# saveRDS(all_genetic_data, file = file.path("R/output", "step_genetic.rds"))
 # saveRDS(all_patch_stats, file = file.path("R/output", "two_patch.rds"))
 # saveRDS(all_genetic_data, file = file.path("R/output", "two_genetics.rds"))
 
