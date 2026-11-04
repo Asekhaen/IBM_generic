@@ -24,9 +24,7 @@ create_n_per_patch <- function(patches, carrying_capacity) {
   return(n_per_patch)
 }
 
-
 # Density-dependent reproduction 
-
 bev_holt <- function(n_pop, fecundity, carrying_capacity) {
   return(fecundity / (1 + (fecundity - 1) / carrying_capacity * n_pop))
 }
@@ -42,7 +40,6 @@ bev_holt <- function(n_pop, fecundity, carrying_capacity) {
 #   expected_offspring <- fecundity*exp(-dd_rate*n_pop)
 #   return(expected_offspring)
 # }
-
 
 # Loci selection matrix: function to place loci at random on the genome (of size = 1)
 # also takes exponential decay and variance to produce variance-covariance matrix
@@ -152,15 +149,11 @@ create_dispersal_matrix <- function(patches, lambda, dispersal_frac, adjacency_m
     dispersal_matrix <- dispersal_frac * rel_dispersal_matrix +
       (1 - dispersal_frac) * diag(nrow(dispersal_kernel))
 
-
     # to ensure tat the probability of movement between patches aligns with the
     # number of individuals per patch when comparing the plot with the patch population statistics
-
   }
   return(dispersal_matrix)
 }
-
-
 
 #calculate deleterious allele frequency from load
 calc_q <- function(load, loci) {

@@ -61,7 +61,7 @@ growth <- function(pop_patches,
                    linkage,
                    sim_years) {
   #browser()
-  #if(sim_years == 10) browser()
+  # if(sim_years == 13) browser()
   updated_pop_patches <- list()
   for (i in seq_along(pop_patches)) {
     pop <- pop_patches[[i]]  
@@ -69,7 +69,7 @@ growth <- function(pop_patches,
     # reproduction  
     n.pop <- nrow(pop)
     
-    if (n.pop > 0){
+    if (n.pop >= 2){
       
       
       # # exp_fecundity <- fec_dd(n.pop, dd_rate, prob_survival)
@@ -78,26 +78,27 @@ growth <- function(pop_patches,
       exp_fecundity <- bev_holt(n.pop, fecundity, carrying_capacity)
       act_fecundity <- rpois(n.pop, exp_fecundity)
       
-      homozygous <- rowSums((pop$allele1 + pop$allele2) == 2) 
-      homo_del <- as.numeric(!homozygous)
-      n_homo <- sum(homo_del == 0)
-      n_individual <- length(homo_del)
       
+      # obligate outcrossing: each individual draws one mate uniformly from the other
+      # n.pop - 1 individuals (random offset 1..n.pop-1 around the index, so self is never chosen)
+      selected_mate_idx <- ((seq_len(n.pop) - 1 +
+                               sample.int(n.pop - 1, n.pop, replace = TRUE)) %% n.pop) + 1
       
+      # sterile = homozygous for the deleterious allele at >= 1 locus
+      sterile <- rowSums((pop$allele1 + pop$allele2) == 2) > 0
+      
+      # sterile effect: a mating produces no offspring if either partner is sterile
       if (complete_sterile) {
-        
+        homo_del <- as.numeric(!(sterile | sterile[selected_mate_idx]))
         n_offspring <- act_fecundity * homo_del
-        
-        # genetic load estimation based on proportion homozygous/del. alleles
       }  else {
         n_offspring <- act_fecundity
       }
       
     }   else {
-      # If not, set offspring count to 0
+      # 0 or 1 individual: no mate available, so no reproduction (obligate outcrossing)
       n_offspring <- rep(0, n.pop)
     }
-    
     
     total_offspring <- sum(n_offspring)
     
@@ -105,9 +106,9 @@ growth <- function(pop_patches,
     # GENETIC INHERITANCE
     # function with option to choose between inheritance type (linkage and without linkage)
     
-    if (total_offspring > 0){
+    if (total_offspring > 0 && n.pop > 2){
       
-      selected_mate_idx <- sample(n.pop, n.pop, replace = TRUE)
+      # attach each individual's mate genotype (mates drawn above)
       selected_mate <- pop[selected_mate_idx,]
       pop$mate_allele1 <- selected_mate$allele1
       pop$mate_allele2 <- selected_mate$allele2
@@ -267,6 +268,13 @@ run_model <- function(patches,
       freq_a <- ifelse(deleterious_count > 0, deleterious_count / total_alleles, 0)
       freq_A <- ifelse(wild_count > 0, wild_count / total_alleles, 0)
       
+      
+      # genetic load: proportion of individuals homozygous deleterious at >= 1 locus
+      realised_load <- if (n_ind > 0) mean(rowSums(genotype_sum == 2) > 0) else NA_real_
+      # expected load under HWE and independent loci (Eq. 4), for comparison
+      hwe_load <- if (n_ind > 0) 1 - prod(1 - freq_a^2) else NA_real_
+      
+      
       tibble::tibble(
         patch = patch_id,
         year  = year,
@@ -275,7 +283,10 @@ run_model <- function(patches,
         Aa = Aa_count,
         aa = aa_count,
         freq_A = freq_A,
-        freq_a = freq_a
+        freq_a = freq_a,
+        n_ind = n_ind,
+        realised_load = realised_load,
+        hwe_load = hwe_load
       )
     })
     
