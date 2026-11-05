@@ -145,11 +145,7 @@ growth <- function(pop_patches,
        if (lethal_effect){
          homozygous_lethal <- (offspring$allele1 == 1) & (offspring$allele2 == 1)
          any_homozygous <- rowSums(homozygous_lethal) > 0
-         # any_homozygous_del <- as.numeric(!any_homozygous)
-         # n_homo_del <- sum(any_homozygous_del == 0)
-         # n_individual <- length(any_homozygous_del)
          offspring <- offspring[!any_homozygous,]
-    
        }
        
        # Update pop with offspring
@@ -166,7 +162,6 @@ growth <- function(pop_patches,
 
     updated_pop_patches[[i]] <- pop
   }
-  #return(updated_pop_patches)
   result <- list(
     updated_pop_patches = updated_pop_patches
   )
@@ -205,7 +200,7 @@ dispersal <- function(pop, patches, lambda, dispersal_frac, adjacency_matrix, ch
       all(probs >= 0),
       abs(sum(probs) - 1) < 1e-8
     )
-    #sample the desitination for each individual
+    #sample the destination for each individual
     destinations <- sample(
       seq_len(patches),
       size = n,
@@ -214,7 +209,7 @@ dispersal <- function(pop, patches, lambda, dispersal_frac, adjacency_matrix, ch
     )
     flows[i, ] <- tabulate(destinations, nbins = patches)
     
-    # bind individuals that moved to their destinbtion patch
+    # bind individuals that moved to their destination patch
     for (j in seq_len(patches)) {
       dispersed_pop[[j]] <- bind_rows(
         dispersed_pop[[j]],
@@ -258,14 +253,14 @@ run_model <- function(patches,
   
   patch_stats <- list()
   genetic_data <- list()
-  time_halfK <- rep(NA, patches)
+  time_estb <- rep(NA, patches)
   dispersal_kernel <- matrix()
   
   # propagule supply / establishment tracking
   time_colonised        <- rep(NA_integer_, patches) # first year N >= colonisation_threshold (arrival time)
   cum_emigrants         <- rep(0, patches)           # cumulative individuals that left each patch
   cum_immigrants        <- rep(0, patches)           # cumulative individuals that arrived in each patch
-  immigrants_to_arrival <- rep(NA_real_, patches)    # cumulative immigrants up to and including arrival year
+  # immigrants_to_arrival <- rep(NA_real_, patches)    # cumulative immigrants up to and including arrival year
   
   for (year in 1:sim_years) {
     #browser()
@@ -315,7 +310,6 @@ run_model <- function(patches,
       freq_A <- ifelse(wild_count > 0, wild_count / total_alleles, 0)
 
       # # genetic load (Eq. 4a): proportion of individuals homozygous deleterious at >= 1 locus
-      
       # realised_load <- if (n_ind > 0) mean(rowSums(genotype_sum == 2) > 0) else NA_real_
       
       # # expected load under HWE and independent loci (Eq. 4), for comparison
@@ -357,12 +351,12 @@ run_model <- function(patches,
     occupied <- sum(curr_pop_size >= colonisation_threshold)
     
     #time for population to reach half K (carrying capapcity)
-    time_halfK[is.na(time_halfK) & curr_pop_size >= half_K] <- year
+    time_estb[is.na(time_estb) & curr_pop_size >= half_K] <- year
     
     # arrival time and the immigrant pressure needed to reach it
     newly_colonised <- is.na(time_colonised) & curr_pop_size >= colonisation_threshold
     time_colonised[newly_colonised]        <- year
-    immigrants_to_arrival[newly_colonised] <- cum_immigrants[newly_colonised]
+    # immigrants_to_arrival[newly_colonised] <- cum_immigrants[newly_colonised]
     
     # growth rate (Eq. 5): local = reproduction only (S_t vs N_t, before dispersal);
     # net = includes migration. Undefined (NA) for empty patches
@@ -388,7 +382,7 @@ run_model <- function(patches,
       start_size = prev_pop_size,             # N_t
       post_repro_size = post_repro_size,      # S_t
       pop_size = curr_pop_size,               # N_{t+1} (after dispersal)
-      time_half_K = time_halfK,
+      time_estb_K = time_estb,
       g_rate = local_growth,
       g_rate_net = net_growth,
       emigrants = emigrants,
@@ -397,14 +391,14 @@ run_model <- function(patches,
       # cum_immigrants = cum_immigrants,
       # expected_emigrants = expected_emigrants,
       # genetic_output_ratio = genetic_output_ratio,
-      time_colonised = time_colonised
       # immigrants_to_arrival = immigrants_to_arrival,
-      # patch_occupied = occupied
+      # patch_occupied = occupied,
+      time_colonised = time_colonised
       )
   
   #bind population dynamics and genetics outputs 
   patch_stats_df <- bind_rows(patch_stats)
-  # genetic_data_df <- bind_rows(genetic_data)
+  genetic_data_df <- bind_rows(genetic_data)
   }
   
   # Return the collected data
